@@ -1,6 +1,6 @@
 #include "whole_body_planner/RobotStateInterface.h"
 
-RobotStateInterface::RobotStateInterface(const std::map<std::string, unsigned int> joint_name_to_index)
+RobotStateInterface::RobotStateInterface()
 {
     ros::NodeHandle nh_private("~");
 
@@ -11,15 +11,6 @@ RobotStateInterface::RobotStateInterface(const std::map<std::string, unsigned in
     sub_right_arm_ = nh_private.subscribe<sensor_msgs::JointState>("/arm_right_controller/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
     sub_head_pan_ = nh_private.subscribe<std_msgs::Float64>("/head_pan_angle", 10, &RobotStateInterface::headPanMeasurementCallback, this);
     sub_head_tilt_ = nh_private.subscribe<std_msgs::Float64>("/head_tilt_angle", 10, &RobotStateInterface::headTiltMeasurementCallback, this);
-
-    /// Set joint name to index map and initialize vectors with joint names and joint positions
-    joint_name_to_index_ = joint_name_to_index;
-
-    for (std::map<std::string, unsigned int>::iterator it = joint_name_to_index_.begin(); it != joint_name_to_index_.end(); ++it)
-    {
-        joint_names_.push_back(it->first);
-        joint_positions_.push_back(0);
-    }
 
 }
 
@@ -40,10 +31,8 @@ void RobotStateInterface::baseMeasurementCallback(const geometry_msgs::PoseWithC
 
 void RobotStateInterface::jointMeasurementCallback(const sensor_msgs::JointState::ConstPtr& msg)
 {
-    for(unsigned int i = 0; i < msg->name.size(); ++i) {
-        /*        unsigned int index = joint_name_to_index_.find(msg->name[i])->second;
-        joint_positions_[index] = msg->position[i];
-*/
+    for(unsigned int i = 0; i < msg->name.size(); ++i)
+    {
         joint_positions_map_[msg->name[i]] = msg->position[i];
     }
 }

@@ -26,11 +26,15 @@ void WholeBodyPlanner::goalCB()
 {
     const amigo_whole_body_controller::ArmTaskGoal& goal = *action_server_->acceptNewGoal();
 
+    /// Get initial positions from robot interface
+    std::map<std::string, double> joint_position_map = robot_state_interface_.getJointPositions();
+
     /// Compute constraints
     bool plan_result = false;
     if (planner_ == 0)
     {
-        plan_result = planner_empty_.ComputeConstraints(goal, constraints_);
+        planner_empty_.setInitialJointPositions(joint_position_map);
+        plan_result = planner_empty_.computeConstraints(goal, constraints_);
     }
 
     /// If succeeded, send to whole body controller

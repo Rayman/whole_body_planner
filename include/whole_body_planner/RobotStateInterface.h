@@ -24,7 +24,7 @@ public:
     /**
       * Constructor
       */
-    RobotStateInterface(const std::map<std::string, unsigned int> joint_name_to_index);
+    RobotStateInterface();
 
     /**
       * Deconstructor
@@ -67,21 +67,6 @@ protected:
       * Is obsolete as soon as head controller publishes joint state messages
       */
     void headTiltMeasurementCallback(const std_msgs::Float64::ConstPtr& msg);
-
-    /**
-      * Map containing strings of the various joint names and the corresponding index in the joint vector
-      */
-    std::map<std::string, unsigned int> joint_name_to_index_;
-
-    /**
-      * Vector containing the joint names
-      */
-    std::vector<std::string> joint_names_;
-
-    /**
-      * Vector containing the joint values
-      */
-    std::vector<double> joint_positions_;
 
     /**
       * Map containing the joint names and corresponding positions

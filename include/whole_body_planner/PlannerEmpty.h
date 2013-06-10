@@ -28,7 +28,7 @@ public:
       * @param goal_constraint: goal constraint
       * @param constraints: vector containing pointers to goal constraints
       */
-    bool ComputeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
+    bool computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
 };
 

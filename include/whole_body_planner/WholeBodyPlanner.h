@@ -13,6 +13,7 @@
 /// Planners
 #include "PlannerEmpty.h"
 #include "Executer.h"
+#include "RobotStateInterface.h"
 
 class WholeBodyPlanner
 {
@@ -64,6 +65,12 @@ protected:
       * Empty planner
       */
     PlannerEmpty planner_empty_;
+
+    /**
+      * Interface to robot hardware
+      * Receives joint positions
+      */
+    RobotStateInterface robot_state_interface_;
 
 };
 
