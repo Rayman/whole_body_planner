@@ -7,13 +7,7 @@ WholeBodyPlanner::WholeBodyPlanner()
 
     /// Action servers
     action_server_ = new actionlib::SimpleActionServer<amigo_whole_body_controller::ArmTaskAction>(nh_private, "motion_constraint", false);
-    //action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this, _1));
-    ROS_ERROR("Goalcallback needs to be registered");
-    //action_server_ = new actionlib::SimpleActionServer<amigo_whole_body_controller::ArmTaskAction>(nh_private,
-    //                                                                                              "/motion_constraint",
-    //                                                                                               boost::bind(&WholeBodyPlanner::goalCB, this, _1),
-    //                                                                                               false);
-
+    action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this));
     action_server_->start();
 
     // ToDo: depend on parameter (e.g. in launchfile)
