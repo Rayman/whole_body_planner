@@ -72,6 +72,17 @@ protected:
       */
     RobotStateInterface robot_state_interface_;
 
+    /// Marker publisher
+    /**
+      * Publisher
+      */
+    ros::Publisher marker_array_pub_ ;
+
+    /**
+      * Function publishes constraints as marker array
+      */
+    void PublishMarkers();
+
 };
 
 #endif
