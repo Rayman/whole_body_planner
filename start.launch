@@ -1,0 +1,9 @@
+<launch>
+
+    <arg name="launch_prefix" default="" />
+    
+	<rosparam file="$(find whole_body_planner)/parameters/nodes.yaml" command="load" ns="whole_body_planner"/>
+	
+	<node pkg="whole_body_planner" type="whole_body_planner" name="whole_body_planner" respawn="false" output="screen"/> <!--launch-prefix="${arg launch_prefix}"/>-->
+	
+</launch>

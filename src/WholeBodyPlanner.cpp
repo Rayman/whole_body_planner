@@ -14,7 +14,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 1);
 
     // ToDo: depend on parameter (e.g. in launchfile)
-    planner_ = 0;
+    planner_ = 1;
 
 }
 
@@ -38,6 +38,11 @@ void WholeBodyPlanner::goalCB()
     {
         planner_empty_.setInitialJointPositions(joint_position_map);
         plan_result = planner_empty_.computeConstraints(goal, constraints_);
+    }
+    else if (planner_ == 1)
+    {
+        planner_topological_.setInitialJointPositions(joint_position_map);
+        plan_result = planner_topological_.computeConstraints(goal, constraints_);
     }
 
     /// If succeeded, send to whole body controller
@@ -74,10 +79,11 @@ void WholeBodyPlanner::PublishMarkers()
         marker.scale.x = 0.1;
         marker.scale.y = 0.1;
         marker.scale.z = 0.1;
-        marker.color.r = 1-i/constraints_.size();
-        marker.color.g = i/constraints_.size();
+        marker.color.r = 1-(i+1)/constraints_.size();
+        marker.color.g = (i+1)/constraints_.size();
         marker.color.b = 0.0;
         marker.color.a = 1.0;
+        marker.lifetime = ros::Duration(5.0);
         marker_array.markers.push_back(marker);
         marker_array_pub_.publish(marker_array);
     }

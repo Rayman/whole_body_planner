@@ -12,6 +12,8 @@
 
 /// Planners
 #include "PlannerEmpty.h"
+#include "PlannerTopological.h"
+
 #include "Executer.h"
 #include "RobotStateInterface.h"
 
@@ -65,6 +67,11 @@ protected:
       * Empty planner
       */
     PlannerEmpty planner_empty_;
+
+    /**
+      * Topological planner
+      */
+    PlannerTopological planner_topological_;
 
     /**
       * Interface to robot hardware

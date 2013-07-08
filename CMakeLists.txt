@@ -33,7 +33,9 @@ rosbuild_add_library(wholebodyplanner
                     src/WholeBodyPlanner.cpp
                     src/Executer.cpp
                     src/RobotStateInterface.cpp
-                    src/PlannerEmpty.cpp)
+                    src/PlannerEmpty.cpp
+                    src/PlannerTopological.cpp
+                    src/ConnectivityGraph.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
