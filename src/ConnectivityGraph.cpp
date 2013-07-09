@@ -233,6 +233,8 @@ void Graph::createGraph(const amigo_whole_body_controller::ArmTaskGoal &goal_con
     /// ToDo: don't hardcode
     /// ToDo: include orientation
 
+    tip_frame_ = goal_constraint.position_constraint.link_name;
+
     /// Nodes
     // Carrying pose
     findNodeByName("carrying_pose")->position_constraint_.position.x = 0.265;
@@ -357,46 +359,38 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& Graph::getPlan(const std:
     }
 
     // ToDo: again: more efficiently
-    std::vector<Node*> plan;
+
+    /// Move back through plan and add constraints to the plan
     Node* insertNode = findNodeByName(endPosition);
-    std::vector<Node*>::iterator it;
-    ////std::vector<amigo_arm_navigation::grasp_precomputeGoal> control_points;
     while (!(insertNode->getName() == startPosition))
     {
-        it = plan.begin();
-        plan.insert(it,insertNode);
-
-        ////amigo_arm_navigation::grasp_precomputeGoal cp;
-        amigo_whole_body_controller::ArmTaskGoal cp;
-        cp.position_constraint.header.frame_id = insertNode->position_constraint_.header.frame_id;
-        cp.position_constraint.position.x = insertNode->position_constraint_.position.x;
-        cp.position_constraint.position.y = insertNode->position_constraint_.position.y;
-        cp.position_constraint.position.z = insertNode->position_constraint_.position.z;
-        constraints_.push_back(cp);
-
+        addNodeToPlan(insertNode);
         insertNode = insertNode->getTentativeParentNode();
     }
+
     /// Also insert the startnode
-    it = plan.begin();
-    plan.insert(it,insertNode);
-    ////amigo_arm_navigation::grasp_precomputeGoal cp;
-    amigo_whole_body_controller::ArmTaskGoal cp;
-    cp.position_constraint.header.frame_id = insertNode->position_constraint_.header.frame_id;
-    cp.position_constraint.position.x = insertNode->position_constraint_.position.x;
-    cp.position_constraint.position.y = insertNode->position_constraint_.position.y;
-    cp.position_constraint.position.z = insertNode->position_constraint_.position.z;
-    constraints_.push_back(cp);
+    addNodeToPlan(insertNode);
 
     /// Reverse order of control points
     std::reverse(constraints_.begin(), constraints_.end());
 
     /// Print results
-    for (unsigned int i = 0; i < plan.size(); i++)
+    for (unsigned int i = 0; i < constraints_.size(); i++)
     {
-        ROS_INFO("Node(%i) = %s",i,plan[i]->getName().c_str());
+        ROS_INFO("Constraint(%i) = %s",i,constraints_[i].goal_type.c_str());
     }
 
-    //return plan;
     return constraints_;
+}
 
+void Graph::addNodeToPlan(Node* insertNode)
+{
+    amigo_whole_body_controller::ArmTaskGoal cp;
+    cp.goal_type = insertNode->getName();
+    cp.position_constraint.link_name = tip_frame_;
+    cp.position_constraint.header.frame_id = insertNode->position_constraint_.header.frame_id;
+    cp.position_constraint.position.x = insertNode->position_constraint_.position.x;
+    cp.position_constraint.position.y = insertNode->position_constraint_.position.y;
+    cp.position_constraint.position.z = insertNode->position_constraint_.position.z;
+    constraints_.push_back(cp);
 }

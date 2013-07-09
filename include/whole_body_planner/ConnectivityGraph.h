@@ -217,6 +217,16 @@ private:
       */
     std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_;
 
+    /**
+      * Tip frame: frame for which a plan is made
+      */
+    std::string tip_frame_;
+
+    /**
+      * Adds node to the plan
+      */
+    void addNodeToPlan(Node* insertNode);
+
 public:
     /**
       * Contructor

@@ -24,7 +24,7 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
     /// Send goals to the whole body controller
     for (unsigned int i = 0; i < constraints.size(); i++)
     {
-        //action_client_->sendGoal(*constraints[i]);
+        //ROS_WARN("Tip frame = %s",constraints[i].position_constraint.link_name.c_str());
         action_client_->sendGoal(constraints[i]);
         action_client_->waitForResult();
     }
