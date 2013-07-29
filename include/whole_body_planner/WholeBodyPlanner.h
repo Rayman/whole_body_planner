@@ -13,6 +13,7 @@
 /// Planners
 #include "PlannerEmpty.h"
 #include "PlannerTopological.h"
+#include "PlannerGlobal.h"
 
 #include "Executer.h"
 #include "RobotStateInterface.h"
@@ -72,6 +73,11 @@ protected:
       * Topological planner
       */
     PlannerTopological planner_topological_;
+
+    /**
+      * Global planner
+      */
+    PlannerGlobal planner_global_;
 
     /**
       * Interface to robot hardware

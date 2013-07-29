@@ -14,7 +14,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 1);
 
     // ToDo: depend on parameter (e.g. in launchfile)
-    planner_ = 1;
+    planner_ = 2;
 
 }
 
@@ -43,6 +43,12 @@ void WholeBodyPlanner::goalCB()
     {
         planner_topological_.setInitialJointPositions(joint_position_map);
         plan_result = planner_topological_.computeConstraints(goal, constraints_);
+    }
+
+    if (planner_ == 2)
+    {
+        planner_global_.setInitialJointPositions(joint_position_map);
+        plan_result = planner_global_.computeConstraints(goal, constraints_);
     }
 
     /// If succeeded, send to whole body controller

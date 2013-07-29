@@ -23,21 +23,35 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(OMPL REQUIRED ompl)
+include_directories(${OMPL_INCLUDE_DIRS})
+link_directories(${OMPL_LIBRARY_DIRS})
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
 #common commands for building c++ executables and libraries
+rosbuild_add_library(taskspaceroadmap
+                    src/TaskSpaceRoadmap.cpp
+                    src/PlanningVisualizer.cpp
+                    src/VisibilityBasedValidStateSampler.cpp
+                    )
+target_link_libraries(taskspaceroadmap ${OMPL_LIBRARIES})
+
 rosbuild_add_library(wholebodyplanner
                     src/WholeBodyPlanner.cpp
                     src/Executer.cpp
                     src/RobotStateInterface.cpp
                     src/PlannerEmpty.cpp
                     src/PlannerTopological.cpp
-                    src/ConnectivityGraph.cpp)
+                    src/ConnectivityGraph.cpp
+                    src/PlannerGlobal.cpp
+                    )
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
+target_link_libraries(wholebodyplanner taskspaceroadmap)
 rosbuild_add_executable(whole_body_planner src/whole_body_planner_node.cpp ${HEADER_FILES})
 target_link_libraries(whole_body_planner wholebodyplanner)
