@@ -74,33 +74,48 @@ TaskSpaceRoadmap::~TaskSpaceRoadmap()
     delete octomap_;
 }
 
-bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal_constraint)
+bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal_constraint, const geometry_msgs::PoseStamped &start_pose)
 {
     // Save goal_constraint
     goal_constraint_ = goal_constraint;
     ROS_INFO("Creating roadmap");
 
-    // Set the start and goal states
-    std::vector<double> v_start = getStart();
+    // Set the bounds
+    setBounds(simple_setup_->getStateSpace());
 
+    if (!prm->milestoneCount()==0)
+    {
+        // Roadmap already exists, only deleting start and goal states.
+        prm->clearQuery();
+    }
+
+    // Set the start and goal states
     ob::ScopedState<> start(simple_setup_->getStateSpace());
-    start[0] = v_start[0];    start[1] = v_start[1];    start[2] = v_start[2];
+    start[0] = start_pose.pose.position.x;
+    start[1] = start_pose.pose.position.y;
+    start[2] = start_pose.pose.position.z;
+
+    if(!start.satisfiesBounds())
+    {
+        // DIRTY HACK
+        ROS_WARN("Start pose out of bounds, x = %f, y = %f z = %f",start[0],start[1],start[2]);
+        start.enforceBounds();
+        ROS_WARN("Start became, x = %f, y = %f z = %f",start[0],start[1],start[2]);
+    }
 
     ob::ScopedState<> goal(simple_setup_->getStateSpace());
     goal[0] = goal_constraint.position_constraint.position.x;
     goal[1] = goal_constraint.position_constraint.position.y;
     goal[2] = goal_constraint.position_constraint.position.z;
 
-    simple_setup_->setStartAndGoalStates(start, goal);
+    ob::Goal goal_ = goal;
 
-    // Set the bounds
-    setBounds(simple_setup_->getStateSpace());
+    simple_setup_->setStartAndGoalStates(start, goal);
 
     // Auto setup parameters
     simple_setup_->setup();
 
     // Solve
-    ROS_INFO("Received plan request" );
     ob::PlannerStatus solved = simple_setup_->solve( 10.0 );
 
     if (solved)
@@ -160,7 +175,8 @@ ob::StateSpacePtr TaskSpaceRoadmap::constructSpace(const unsigned int dimension)
 }
 void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space)
 {
-    // Set the bounds for the R^3
+    // Set the bounds for the R^3 now completely dependent on octomap dimensions
+    // Problem: when arm is behind kinect, then always outside bounds!
     // Hardcoded
     ob::RealVectorBounds bounds( DIMENSIONS );
 
@@ -168,13 +184,13 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space)
     // Set minimum bound
     octomap_->getMetricMin(x,y,z);
     bounds.setLow(0,x); bounds.setLow(1,y); bounds.setLow(2,z);
-    ROS_INFO("OCTOMAP MIN %f, %f, %f", x,y,z);
+    ROS_INFO("Octomap minimum dimensions x= %f, y = %f, z= %f", x,y,z);
 
 
     // Set maximum bound
     octomap_->getMetricMax(x,y,z);
     bounds.setHigh(0,x); bounds.setHigh(1,y); bounds.setHigh(2,z);
-    ROS_INFO("OCTOMAP MAX %f, %f, %f", x,y,z);
+    ROS_INFO("Octomap maximum dimensions x = %f, y = %f, z = %f", x,y,z);
 
     space->as<ob::RealVectorStateSpace>()->setBounds( bounds );
 }
@@ -247,15 +263,6 @@ std::vector<std::vector<double> >  TaskSpaceRoadmap::convertSolutionToVector()
 void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
 {
     octomap_ = octomap_msgs::binaryMsgDataToMap(msg->data);
-}
-
-std::vector<double> TaskSpaceRoadmap::getStart()
-{
-    std::vector<double> start(3);
-    start[0] = 2.000;
-    start[1] = -1.2000;
-    start[2] = 0.35;
-    return start;
 }
 
 void TaskSpaceRoadmap::setTags(og::PathGeometric path)

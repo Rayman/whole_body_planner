@@ -53,7 +53,7 @@ public:
     virtual ~TaskSpaceRoadmap();
 
     /** \brief Initial planning */
-    bool plan(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint);
+    bool plan(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, const geometry_msgs::PoseStamped& start_pose);
 
     /** \brief Return planning result */
     std::vector<amigo_whole_body_controller::ArmTaskGoal>& getPlan();
@@ -144,7 +144,7 @@ private:
     /** \brief  Vector containing the constraints for wbc */
     std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_;
 
-    /** \brief  Goal constraint */
+    /** \brief  Goal constraint received from planner class */
     amigo_whole_body_controller::ArmTaskGoal goal_constraint_;
 
     /** \brief  Status of the planner:
@@ -157,9 +157,6 @@ private:
     // FUNCTIONS
     /** \brief Callback function for octomap */
     void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
-
-    /** \brief Get initial state */
-    std::vector<double> getStart();
 
     /** \brief Set tags, to states which are in solution */
     void setTags(og::PathGeometric path);

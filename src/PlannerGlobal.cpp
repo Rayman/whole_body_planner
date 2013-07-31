@@ -17,18 +17,16 @@ PlannerGlobal::~PlannerGlobal()
 
 bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
-    // Get Start Position
-    //std::map<std::string, geometry_msgs::PoseStamped>::iterator itrFK = wbc_->robot_state_.fk_poses_.find(goal_constraint.position_constraint.link_name);
-    //std::cout<<wbc_->robot_state_.fk_poses_.size()<<std::endl;
-    //geometry_msgs::PoseStamped end_effector_pose_ = itrFK->second;
+    /// Get Start Position
+    geometry_msgs::PoseStamped& start_pose_ =  wbc_->robot_state_.fk_poses_.find(goal_constraint.position_constraint.link_name)->second;
 
-    /// Start the planning
-    if(!task_space_roadmap_->plan(goal_constraint))
+    /// Create roadmap and find global path
+    if(!task_space_roadmap_->plan(goal_constraint,start_pose_))
     {
         ROS_INFO("NO PLAN!");
     }
 
-    // Visualize plan
+    /// Visualize roadmap and plan
     std::vector<std::vector<double> > coordinates = task_space_roadmap_->convertSolutionToVector();
     visualizer_->displaySamples(task_space_roadmap_->getPlanData());
     visualizer_->displayGraph(task_space_roadmap_->getPlanData());
