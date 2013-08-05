@@ -108,8 +108,6 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     goal[1] = goal_constraint.position_constraint.position.y;
     goal[2] = goal_constraint.position_constraint.position.z;
 
-    ob::Goal goal_ = goal;
-
     simple_setup_->setStartAndGoalStates(start, goal);
 
     // Auto setup parameters
