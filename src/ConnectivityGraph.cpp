@@ -159,11 +159,11 @@ bool Graph::initializeGraph()
         }
         if (staticDofs.hasMember("y")) {
             staticDofs[1] = true;
-            newNode.position_constraint_.position.x = staticDofs["y"];
+            newNode.position_constraint_.position.y = staticDofs["y"];
         }
         if (staticDofs.hasMember("z")) {
             staticDofs[2] = true;
-            newNode.position_constraint_.position.x = staticDofs["z"];
+            newNode.position_constraint_.position.z = staticDofs["z"];
         }
         if (staticDofs.hasMember("roll")) {
             staticDofs[3] = true;
@@ -294,8 +294,9 @@ void Graph::clearVisited()
 std::vector<amigo_whole_body_controller::ArmTaskGoal>& Graph::getPlan(const std::string startPosition, const std::string endPosition)
 {
 
-    /// Start by setting all nodes to unvisited
+    /// Start by setting all nodes to unvisited and setting the constraints vector to empty
     clearVisited();
+    constraints_.clear();
 
     /// Retrieve startnode and set tentativeCost to 0
     Node* startNode = findNodeByName(startPosition);
