@@ -6,7 +6,9 @@ Executer::Executer()
     ros::NodeHandle nh_private("~");
 
     action_client_ = new actionlib::SimpleActionClient<amigo_whole_body_controller::ArmTaskAction>("/add_motion_objective", true);
+    ROS_INFO("Waiting for whole body controller");
     action_client_->waitForServer();
+    ROS_INFO("Connected to server, executer initialized");
 
 }
 
