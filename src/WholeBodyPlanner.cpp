@@ -3,6 +3,7 @@
 WholeBodyPlanner::WholeBodyPlanner()
 {
 
+    ROS_INFO("Initializing whole body planner");
     ros::NodeHandle nh_private("~");
 
     /// Action servers
@@ -13,8 +14,10 @@ WholeBodyPlanner::WholeBodyPlanner()
     /// Publisher
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 1);
 
-    // ToDo: depend on parameter (e.g. in launchfile)
-    planner_ = 2;
+    int planner;
+    nh_private.param("planner_type", planner, 0);
+    planner_ = planner;
+    ROS_INFO("Planner type = %i",planner_);
 
 }
 
