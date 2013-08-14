@@ -5,7 +5,7 @@
 	<rosparam file="$(find whole_body_planner)/parameters/nodes.yaml" command="load" ns="whole_body_planner"/>
 	
 	<node pkg="whole_body_planner" type="whole_body_planner" name="whole_body_planner" respawn="false" output="screen">
-		<param name="planner_type" value="2" />
+		<param name="planner_type" value="1" />
 	</node> <!--launch-prefix="${arg launch_prefix}"/>-->
 	
 </launch>

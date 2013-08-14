@@ -11,13 +11,17 @@ WholeBodyPlanner::WholeBodyPlanner()
     action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this));
     action_server_->start();
 
-    /// Publisher
+    /// Publishers
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 1);
+    trajectory_pub_   = nh_private.advertise<nav_msgs::Path>("/whole_body_planner/trajectory", 1);
 
     int planner;
     nh_private.param("planner_type", planner, 0);
     planner_ = planner;
     ROS_INFO("Planner type = %i",planner_);
+
+    // ToDo: don't hardcode
+    simulator_.initialize(0.02);
 
 }
 
@@ -47,19 +51,34 @@ void WholeBodyPlanner::goalCB()
         planner_topological_.setInitialJointPositions(joint_position_map);
         plan_result = planner_topological_.computeConstraints(goal, constraints_);
     }
-
-    if (planner_ == 2)
+    else if (planner_ == 2)
     {
         planner_global_.setInitialJointPositions(joint_position_map);
         plan_result = planner_global_.computeConstraints(goal, constraints_);
     }
+    ROS_INFO("Computed plan, result = %d",plan_result);
+
+    /// Check whether constraints are feasible in joint space as well
+    bool plan_feasible = false;
+    if (plan_result)
+    {
+        /// Set initial state simulator (setInitialJointConfiguration)
+        simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions());
+        /// Check if plan is feasible (checkFeasibility)
+        int error_index = 0;
+        // ToDo: Don't hardcode max_iter
+        plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
+        ROS_INFO("Checked feasibility, error_index = %i", error_index);
+    }
 
     /// If succeeded, send to whole body controller
     bool execute_result = false;
-    if (plan_result)
+    if (plan_feasible)
     {
         PublishMarkers();
-        execute_result = executer_.Execute(constraints_);
+        //execute_result = executer_.Execute(constraints_);
+        execute_result = true;
+        ROS_WARN("Execution disabled!!!");
     }
 
     /// If succeeded, set server succeeded
@@ -71,6 +90,7 @@ void WholeBodyPlanner::goalCB()
     {
         action_server_->setAborted();
     }
+
 
 }
 
@@ -96,4 +116,10 @@ void WholeBodyPlanner::PublishMarkers()
         marker_array.markers.push_back(marker);
         marker_array_pub_.publish(marker_array);
     }
+}
+
+void WholeBodyPlanner::PublishTrajectory(nav_msgs::Path &trajectory)
+{
+    // ToDo: fill trajectory and publish result
+    trajectory_pub_.publish(trajectory);
 }

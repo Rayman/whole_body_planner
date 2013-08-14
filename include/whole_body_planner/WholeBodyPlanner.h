@@ -10,13 +10,18 @@
 #include <amigo_whole_body_controller/ArmTaskAction.h>
 #include <actionlib/server/simple_action_server.h>
 
+/// Messages
+#include <nav_msgs/Path.h>
+
 /// Planners
 #include "PlannerEmpty.h"
 #include "PlannerTopological.h"
 #include "PlannerGlobal.h"
 
+/// Auxiliary stuff
 #include "Executer.h"
 #include "RobotStateInterface.h"
+#include "Simulator.h"
 
 class WholeBodyPlanner
 {
@@ -42,7 +47,12 @@ protected:
     std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_;
 
     /**
-      * Class to send constraints to whole body controller
+      * Object to simulate constraints to check if a plan is feasible
+      */
+    Simulator simulator_;
+
+    /**
+      * Object to send constraints to whole body controller
       */
     Executer executer_;
 
@@ -85,16 +95,26 @@ protected:
       */
     RobotStateInterface robot_state_interface_;
 
-    /// Marker publisher
+    /// Marker + trajectory publisher
     /**
-      * Publisher
+      * Marker Publisher
       */
     ros::Publisher marker_array_pub_ ;
+
+    /**
+      * Trajectory publisher
+      */
+    ros::Publisher trajectory_pub_;
 
     /**
       * Function publishes constraints as marker array
       */
     void PublishMarkers();
+
+    /**
+      * Functions publishes end-effector trajectory
+      */
+    void PublishTrajectory(nav_msgs::Path& trajectory);
 
 };
 

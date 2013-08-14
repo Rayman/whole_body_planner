@@ -48,6 +48,7 @@ rosbuild_add_library(wholebodyplanner
                     src/PlannerTopological.cpp
                     src/ConnectivityGraph.cpp
                     src/PlannerGlobal.cpp
+                    src/Simulator.cpp
                     )
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()

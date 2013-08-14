@@ -1,6 +1,8 @@
 nodes:
   - name: "reset"
     frame_id: "reset"
+    dstNodes:
+      - "carrying_pose"
     absCoords:
     - x: 0
     - y: 0
@@ -8,11 +10,12 @@ nodes:
     - roll: 0
     - pitch: 0
     - yaw: 0 
-    dstNodes:
-    - "carrying_pose"
         
   - name: "carrying_pose" 
     frame_id: "/base_link"
+    dstNodes: 
+      - "reset"
+      - "pre_grasp"
     absCoords:
     - x: 0.265
     - y: 0.2
@@ -20,40 +23,37 @@ nodes:
     - roll: 0
     - pitch: 0
     - yaw: 0 
-    dstNodes: 
-      - "reset"
-      - "pre_grasp"
         
   - name: "pre_grasp"
     frame_id: "/base_link"
+    dstNodes:
+      - "carrying_pose"
+      - "grasp"
+      - "lift"
     absCoords:
     - x: 0.4
     - y: 0.2
     - roll: 0
     - pitch: 0
     - yaw: 0 
-    dstNodes:
-      - "carrying_pose"
-      - "grasp"
-      - "lift"
         
   - name: "grasp"
     frame_id: "/base_link"
+    dstNodes:
+      - "pre_grasp"
+      - "lift"
     absCoords:
     - roll: 0
     - pitch: 0
     - yaw: 0 
-    dstNodes:
-      - "pre_grasp"
-      - "lift"
         
   - name: "lift"
     frame_id: "/base_link"
+    dstNodes: 
+      - "pre_grasp"
+      - "grasp"
     absCoords:
     - z: 1.0
     - roll: 0
     - pitch: 0
     - yaw: 0 
-    dstNodes: 
-      - "pre_grasp"
-      - "grasp"

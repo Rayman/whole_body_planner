@@ -2,7 +2,9 @@
 
 PlannerTopological::PlannerTopological()
 {
+    ROS_INFO("Initializing plannertopological");
     current_state_ = "reset";
+    ROS_INFO("Initialized plannertopological");
 }
 
 PlannerTopological::~PlannerTopological()

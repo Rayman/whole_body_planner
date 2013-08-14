@@ -34,7 +34,7 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
 
     /// Get the path
     constraints = task_space_roadmap_->getPlan();
-    ROS_INFO("Constraints: size = %i",constraints.size());
+    ROS_INFO("Constraints: size = %i",(int)constraints.size());
 
     /// Forward simulation
     KDL::JntArray q_current;
@@ -70,7 +70,7 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
         // Update the wbc
         for(unsigned int num_iter = 0; num_iter < 10; ++num_iter)
         {
-            wbc_->update(q_current, q_ref, qdot_ref);
+            wbc_->update(q_ref, qdot_ref);
             for(unsigned int i = 0; i < wbc_->getJointNames().size(); ++i)
             {
                 wbc_->setMeasuredJointPosition(wbc_->getJointNames()[i], wbc_->getJointReferences()[i]);
