@@ -62,12 +62,14 @@ void WholeBodyPlanner::goalCB()
     bool plan_feasible = false;
     if (plan_result)
     {
+        /// Publish markers
+        PublishMarkers();
         /// Set initial state simulator (setInitialJointConfiguration)
         simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions());
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
         // ToDo: Don't hardcode max_iter
-        plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
+        plan_feasible = simulator_.checkFeasibility(constraints_, 100, error_index);
         ROS_INFO("Checked feasibility, error_index = %i", error_index);
     }
 
@@ -75,7 +77,6 @@ void WholeBodyPlanner::goalCB()
     bool execute_result = false;
     if (plan_feasible)
     {
-        PublishMarkers();
         //execute_result = executer_.Execute(constraints_);
         execute_result = true;
         ROS_WARN("Execution disabled!!!");

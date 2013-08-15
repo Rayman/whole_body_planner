@@ -57,3 +57,20 @@ nodes:
     - roll: 0
     - pitch: 0
     - yaw: 0 
+
+### From RoboCup
+#Point forward (JointGoal)
+#Point backward (JG)
+#Hold tray pose (JG)
+#Support person pose (JG)
+#Reset pose (JG)
+#Handover pose
+#Pre_position (for placing objects)
+#Position
+#Retract
+#Human handover (JG)
+#Pre_poor (=pre_grasp)
+#Poor
+
+### Ideas from Wiki
+#Opening/closing doors/drawers

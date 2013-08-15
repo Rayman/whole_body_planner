@@ -37,7 +37,8 @@ if __name__ == '__main__':
 
     goal = ArmTaskGoal()
     #rospy.loginfo(goal)
-    goal.goal_type = "grasp"
+    #goal.goal_type = "grasp"
+    goal.goal_type = sys.argv[7]
     position_constraint = PositionConstraint()
     position_constraint.header.frame_id = "base_link"
     position_constraint.link_name = "grippoint_left"
