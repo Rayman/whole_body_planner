@@ -1,5 +1,8 @@
 #include "whole_body_planner/RobotStateInterface.h"
 
+// tf
+#include <tf/transform_listener.h>
+
 RobotStateInterface::RobotStateInterface()
 {
     ros::NodeHandle nh_private("~");
@@ -11,6 +14,9 @@ RobotStateInterface::RobotStateInterface()
     sub_right_arm_ = nh_private.subscribe<sensor_msgs::JointState>("/arm_right_controller/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
     sub_head_pan_ = nh_private.subscribe<std_msgs::Float64>("/head_pan_angle", 10, &RobotStateInterface::headPanMeasurementCallback, this);
     sub_head_tilt_ = nh_private.subscribe<std_msgs::Float64>("/head_tilt_angle", 10, &RobotStateInterface::headTiltMeasurementCallback, this);
+
+    /// Initialize amcl_pose_;
+    initializeAmclPose();
 
 }
 
@@ -24,9 +30,14 @@ std::map<std::string, double> RobotStateInterface::getJointPositions()
     return joint_positions_map_;
 }
 
+geometry_msgs::PoseWithCovarianceStamped RobotStateInterface::getAmclPose()
+{
+    return amcl_pose_;
+}
+
 void RobotStateInterface::baseMeasurementCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
 {
-    ROS_WARN_ONCE("whole body planner cannot process base measurements yet");
+    amcl_pose_ = *msg;
 }
 
 void RobotStateInterface::jointMeasurementCallback(const sensor_msgs::JointState::ConstPtr& msg)
@@ -45,4 +56,21 @@ void RobotStateInterface::headPanMeasurementCallback(const std_msgs::Float64::Co
 void RobotStateInterface::headTiltMeasurementCallback(const std_msgs::Float64::ConstPtr& msg)
 {
     ROS_WARN_ONCE("whole body planner cannot process head tilt measurements yet");
+}
+
+void RobotStateInterface::initializeAmclPose()
+{
+    tf::TransformListener listener;
+    listener.waitForTransform("/map","/base_link",ros::Time(0),ros::Duration(1.0)); // Is the latest available transform
+    geometry_msgs::PoseStamped base_link_pose, map_pose;
+    base_link_pose.header.frame_id = "/base_link";
+    base_link_pose.pose.position.x = 0.0;
+    base_link_pose.pose.position.y = 0.0;
+    base_link_pose.pose.position.z = 0.0;
+    base_link_pose.pose.orientation.x = 0.0;
+    base_link_pose.pose.orientation.y = 0.0;
+    base_link_pose.pose.orientation.z = 0.0;
+    base_link_pose.pose.orientation.w = 1.0;
+    listener.transformPose("/map", base_link_pose, map_pose);
+    amcl_pose_.pose.pose = map_pose.pose;
 }

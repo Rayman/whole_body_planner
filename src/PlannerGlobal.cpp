@@ -17,11 +17,20 @@ PlannerGlobal::~PlannerGlobal()
 
 bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
-    /// Get Start Position
-    geometry_msgs::PoseStamped& start_pose_ =  wbc_->robot_state_.fk_poses_.find(goal_constraint.position_constraint.link_name)->second;
+    /// Get Start Position and convert from KDL to PoseStamped message
+    KDL::Frame kdl_start_pose =  wbc_->robot_state_.getFK(goal_constraint.position_constraint.link_name);
+    geometry_msgs::PoseStamped msg_start_pose;
+    msg_start_pose.header.frame_id = "/map";
+    msg_start_pose.pose.position.x = kdl_start_pose.p.x();
+    msg_start_pose.pose.position.y = kdl_start_pose.p.y();
+    msg_start_pose.pose.position.z = kdl_start_pose.p.z();
+    kdl_start_pose.M.GetQuaternion(msg_start_pose.pose.orientation.x,
+                                   msg_start_pose.pose.orientation.y,
+                                   msg_start_pose.pose.orientation.z,
+                                   msg_start_pose.pose.orientation.w);
 
     /// Create roadmap and find global path
-    if(!task_space_roadmap_->plan(goal_constraint,start_pose_))
+    if(!task_space_roadmap_->plan(goal_constraint,msg_start_pose))
     {
         ROS_INFO("NO PLAN!");
     }

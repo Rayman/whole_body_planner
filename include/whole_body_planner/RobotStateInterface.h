@@ -36,6 +36,11 @@ public:
       */
     std::map<std::string, double> getJointPositions();
 
+    /**
+      * Returns the current amcl_pose
+      */
+    geometry_msgs::PoseWithCovarianceStamped getAmclPose();
+
 protected:
 
     /// Subscribers and callback functions
@@ -72,6 +77,17 @@ protected:
       * Map containing the joint names and corresponding positions
       */
     std::map<std::string, double> joint_positions_map_;
+
+    /**
+      * Message containing the amcl-pose, i.e., the pose of the base_link frame in map frame
+      */
+    geometry_msgs::PoseWithCovarianceStamped amcl_pose_;
+
+    /**
+      * Function to initialize amcl_pose_ (using tf)
+      * This is required since amcl only publishes when the pose is updated
+      */
+    void initializeAmclPose();
 
 
 

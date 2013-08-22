@@ -65,12 +65,16 @@ void WholeBodyPlanner::goalCB()
         /// Publish markers
         PublishMarkers();
         /// Set initial state simulator (setInitialJointConfiguration)
-        simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions());
+        simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
         // ToDo: Don't hardcode max_iter
         plan_feasible = simulator_.checkFeasibility(constraints_, 100, error_index);
         ROS_INFO("Checked feasibility, error_index = %i", error_index);
+
+        /// Publish computed trajectory
+        nav_msgs::Path path = simulator_.getPath();
+        PublishTrajectory(path);
     }
 
     /// If succeeded, send to whole body controller
