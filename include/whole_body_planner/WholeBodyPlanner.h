@@ -43,7 +43,6 @@ protected:
     /**
       * Vector containing the list of constraints that is computed by the planner and is sent to the robot
       */
-    //std::vector<amigo_whole_body_controller::ArmTaskGoal*> constraints_;
     std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_;
 
     /**
@@ -66,6 +65,37 @@ protected:
       * Callback function
       */
     void goalCB();
+
+    /**
+      * Calls planners, simulator and executer
+      * @param goal: goal definition
+      */
+    bool planSimExecute(const amigo_whole_body_controller::ArmTaskGoal &goal);
+
+    /**
+      * Action server for old interface (left)
+      */
+    actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>* action_server_old_left_;
+
+    /**
+      * Callback function for old interface (left)
+      */
+    void goalCBOldLeft();
+
+    /**
+      * Action server for old interface (right)
+      */
+    actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>* action_server_old_right_;
+
+    /**
+      * Callback function for old interface (left)
+      */
+    void goalCBOldRight();
+
+    /**
+      * Converts grasp-precompute goal to motion constraint
+      */
+    void convertGoalType(const amigo_arm_navigation::grasp_precomputeGoal &grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal);
 
     /// Planners
     /**

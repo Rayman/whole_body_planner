@@ -11,6 +11,14 @@ WholeBodyPlanner::WholeBodyPlanner()
     action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this));
     action_server_->start();
 
+    action_server_old_left_ = new actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>(nh_private, "/grasp_precompute_left", false);
+    action_server_old_left_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldLeft, this));
+    action_server_old_left_->start();
+
+    action_server_old_right_ = new actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>(nh_private, "/grasp_precompute_right", false);
+    action_server_old_right_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldRight, this));
+    action_server_old_right_->start();
+
     /// Publishers
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 1);
     trajectory_pub_   = nh_private.advertise<nav_msgs::Path>("/whole_body_planner/trajectory", 1);
@@ -29,13 +37,16 @@ WholeBodyPlanner::~WholeBodyPlanner()
 {
 
     delete action_server_;
+    action_server_ = NULL;
+    delete action_server_old_left_;
+    action_server_old_left_ = NULL;
+    delete action_server_old_right_;
+    action_server_old_right_ = NULL;
 
 }
 
-void WholeBodyPlanner::goalCB()
+bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTaskGoal &goal)
 {
-    const amigo_whole_body_controller::ArmTaskGoal& goal = *action_server_->acceptNewGoal();
-
     /// Get initial positions from robot interface
     std::map<std::string, double> joint_position_map = robot_state_interface_.getJointPositions();
 
@@ -85,9 +96,18 @@ void WholeBodyPlanner::goalCB()
         execute_result = true;
         ROS_WARN("Execution disabled!!!");
     }
+    return execute_result;
+}
+
+void WholeBodyPlanner::goalCB()
+{
+    const amigo_whole_body_controller::ArmTaskGoal& goal = *action_server_->acceptNewGoal();
+
+    /// Plan, simulate and execute
+    bool result = planSimExecute(goal);
 
     /// If succeeded, set server succeeded
-    if (execute_result)
+    if (result)
     {
         action_server_->setSucceeded();
     }
@@ -96,6 +116,91 @@ void WholeBodyPlanner::goalCB()
         action_server_->setAborted();
     }
 
+}
+
+void WholeBodyPlanner::goalCBOldLeft()
+{
+    ROS_WARN("This action will become deprecated, please convert to the new interface");
+
+    /// Messages
+    const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal = *action_server_old_left_->acceptNewGoal();
+    amigo_whole_body_controller::ArmTaskGoal goal;
+
+    /// Convert goal
+    convertGoalType(grasp_goal, goal);
+
+    /// Set link names
+    ROS_INFO("Setting link names");
+    goal.position_constraint.link_name = "/grippoint_left";
+    goal.orientation_constraint.link_name = "/grippoint_left";
+
+    /// Plan, simulate and execute
+    ROS_INFO("Plan, simulate, execute");
+    bool result = planSimExecute(goal);
+
+    /// If succeeded, set server succeeded
+    if (result)
+    {
+        action_server_old_left_->setSucceeded();
+    }
+    else
+    {
+        action_server_old_left_->setAborted();
+    }
+}
+
+void WholeBodyPlanner::goalCBOldRight()
+{
+    ROS_WARN("This action will become deprecated, please convert to the new interface");
+
+    /// Messages
+    const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal = *action_server_old_right_->acceptNewGoal();
+    amigo_whole_body_controller::ArmTaskGoal goal;
+
+    /// Convert goal
+    convertGoalType(grasp_goal, goal);
+
+    /// Set link names
+    goal.position_constraint.link_name = "/grippoint_right";
+    goal.orientation_constraint.link_name = "/grippoint_right";
+}
+
+void WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal)
+{
+    /// Position constraint
+    ROS_INFO("Position constraint: position");
+    ROS_INFO("Position constraint: x: %f, y: %f, z: %f",grasp_goal.goal.x, grasp_goal.goal.y, grasp_goal.goal.z);
+    goal.position_constraint.header = grasp_goal.goal.header;
+    goal.position_constraint.position.x = grasp_goal.goal.x;
+    goal.position_constraint.position.y = grasp_goal.goal.y;
+    goal.position_constraint.position.z = grasp_goal.goal.z;
+
+    /// Default: sphere with radius 2 cm
+    ROS_INFO("Position constriant: constraint region shape");
+    goal.position_constraint.constraint_region_shape.type = goal.position_constraint.constraint_region_shape.SPHERE;
+    goal.position_constraint.constraint_region_shape.dimensions.push_back(0.02);
+
+    /// Orientation constraint (static)
+    ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
+    goal.orientation_constraint.orientation = tf::createQuaternionMsgFromRollPitchYaw(grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
+    ROS_INFO("Orientation constraint: tolerances");
+    goal.orientation_constraint.absolute_roll_tolerance = 0.3;
+    goal.orientation_constraint.absolute_pitch_tolerance = 0.3;
+    goal.orientation_constraint.absolute_yaw_tolerance = 0.3;
+
+    /// Stiffness
+    ROS_INFO("Stiffness");
+    goal.stiffness.force.x = 100;
+    goal.stiffness.force.y = 100;
+    goal.stiffness.force.z = 100;
+    goal.stiffness.torque.x = 50;
+    goal.stiffness.torque.y = 50;
+    goal.stiffness.torque.z = 50;
+
+    // ToDo: 'sample' yaw
+    // ToDo: perform pre_grasp
+    // ToDo: delta goal
+    // ToDo: first joint pos only
 
 }
 
