@@ -123,7 +123,18 @@ bool Simulator::setInitialJointConfiguration(const std::map<std::string,double>&
     }
     /// Set amcl pose
     ROS_INFO("AMCL pose x: %f, y: %f",amcl_pose.pose.pose.position.x,amcl_pose.pose.pose.position.y);
-    wbc_->robot_state_.setAmclPose(amcl_pose);
+
+    /// Convert to KDL::Frame
+    KDL::Frame amcl_pose_;
+    amcl_pose_.p.x(amcl_pose.pose.pose.position.x);
+    amcl_pose_.p.y(amcl_pose.pose.pose.position.y);
+    amcl_pose_.p.z(amcl_pose.pose.pose.position.z);
+    amcl_pose_.M.Quaternion(amcl_pose.pose.pose.orientation.x,
+                            amcl_pose.pose.pose.orientation.y,
+                            amcl_pose.pose.pose.orientation.z,
+                            amcl_pose.pose.pose.orientation.w);
+
+    wbc_->robot_state_.setAmclPose(amcl_pose_);
     return true;
 }
 
