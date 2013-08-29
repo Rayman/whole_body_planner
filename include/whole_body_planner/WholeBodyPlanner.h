@@ -72,31 +72,6 @@ protected:
       */
     bool planSimExecute(const amigo_whole_body_controller::ArmTaskGoal &goal);
 
-    /**
-      * Action server for old interface (left)
-      */
-    actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>* action_server_old_left_;
-
-    /**
-      * Callback function for old interface (left)
-      */
-    void goalCBOldLeft();
-
-    /**
-      * Action server for old interface (right)
-      */
-    actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>* action_server_old_right_;
-
-    /**
-      * Callback function for old interface (left)
-      */
-    void goalCBOldRight();
-
-    /**
-      * Converts grasp-precompute goal to motion constraint
-      */
-    void convertGoalType(const amigo_arm_navigation::grasp_precomputeGoal &grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal);
-
     /// Planners
     /**
       * Desired planner
@@ -145,6 +120,37 @@ protected:
       * Functions publishes end-effector trajectory
       */
     void PublishTrajectory(nav_msgs::Path& trajectory);
+
+    /// Required for old interface
+    /**
+      * Action server for old interface (left)
+      */
+    actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>* action_server_old_left_;
+
+    /**
+      * Callback function for old interface (left)
+      */
+    void goalCBOldLeft();
+
+    /**
+      * Action server for old interface (right)
+      */
+    actionlib::SimpleActionServer<amigo_arm_navigation::grasp_precomputeAction>* action_server_old_right_;
+
+    /**
+      * Callback function for old interface (left)
+      */
+    void goalCBOldRight();
+
+    /**
+      * Converts grasp-precompute goal to motion constraint
+      */
+    bool convertGoalType(const amigo_arm_navigation::grasp_precomputeGoal &grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal);
+
+    /**
+      * tf listener (required for delta goals)
+      */
+    tf::TransformListener listener_;
 
 };
 

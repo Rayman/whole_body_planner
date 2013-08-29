@@ -127,7 +127,11 @@ void WholeBodyPlanner::goalCBOldLeft()
     amigo_whole_body_controller::ArmTaskGoal goal;
 
     /// Convert goal
-    convertGoalType(grasp_goal, goal);
+    if (!convertGoalType(grasp_goal, goal))
+    {
+        action_server_old_right_->setAborted();
+        return;
+    }
 
     /// Set link names
     ROS_INFO("Setting link names");
@@ -158,31 +162,115 @@ void WholeBodyPlanner::goalCBOldRight()
     amigo_whole_body_controller::ArmTaskGoal goal;
 
     /// Convert goal
-    convertGoalType(grasp_goal, goal);
+    if (!convertGoalType(grasp_goal, goal))
+    {
+        action_server_old_right_->setAborted();
+        return;
+    }
 
     /// Set link names
     goal.position_constraint.link_name = "/grippoint_right";
     goal.orientation_constraint.link_name = "/grippoint_right";
+
+    /// Plan, simulate and execute
+    ROS_INFO("Plan, simulate, execute");
+    bool result = planSimExecute(goal);
+
+    /// If succeeded, set server succeeded
+    if (result)
+    {
+        action_server_old_right_->setSucceeded();
+    }
+    else
+    {
+        action_server_old_right_->setAborted();
+    }
 }
 
-void WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal)
+bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal)
 {
-    /// Position constraint
-    ROS_INFO("Position constraint: position");
-    ROS_INFO("Position constraint: x: %f, y: %f, z: %f",grasp_goal.goal.x, grasp_goal.goal.y, grasp_goal.goal.z);
-    goal.position_constraint.header = grasp_goal.goal.header;
-    goal.position_constraint.position.x = grasp_goal.goal.x;
-    goal.position_constraint.position.y = grasp_goal.goal.y;
-    goal.position_constraint.position.z = grasp_goal.goal.z;
+
+    /// Check for absolute or delta (and ambiguous goals)
+    bool absolute_requested=false, delta_requested=false;
+    const double eps = 1e-6;
+    if(fabs(grasp_goal.goal.x)>eps || fabs(grasp_goal.goal.y)>eps || fabs(grasp_goal.goal.z)>eps || fabs(grasp_goal.goal.roll)>eps || fabs(grasp_goal.goal.pitch)>eps || fabs(grasp_goal.goal.yaw)>eps)
+        absolute_requested = true;
+    if(fabs(grasp_goal.delta.x)>eps || fabs(grasp_goal.delta.y)>eps || fabs(grasp_goal.delta.z)>eps || fabs(grasp_goal.delta.roll)>eps || fabs(grasp_goal.delta.pitch)>eps || fabs(grasp_goal.delta.yaw)>eps)
+        delta_requested = true;
+    if(absolute_requested && delta_requested)
+    {
+        ROS_WARN("grasp_precompute_action: goal consists out of both absolute AND delta values. Choose only one!");
+        return false;
+    }
+
+    if (absolute_requested)
+    {
+        /// Position constraint
+        ROS_INFO("Position constraint: position");
+        ROS_INFO("Position constraint: x: %f, y: %f, z: %f",grasp_goal.goal.x, grasp_goal.goal.y, grasp_goal.goal.z);
+        goal.position_constraint.header = grasp_goal.goal.header;
+        goal.position_constraint.position.x = grasp_goal.goal.x;
+        goal.position_constraint.position.y = grasp_goal.goal.y;
+        goal.position_constraint.position.z = grasp_goal.goal.z;
+
+        /// Orientation constraint (static)
+        ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
+        goal.orientation_constraint.header = grasp_goal.goal.header;
+        goal.orientation_constraint.orientation = tf::createQuaternionMsgFromRollPitchYaw(grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
+    }
+    else if (delta_requested)
+    {
+        /// Create temporary objects
+        geometry_msgs::PointStamped point_in, point_out;
+        geometry_msgs::QuaternionStamped quat_in, quat_out;
+
+        /// Position constraint
+        ROS_INFO("Position constraint: position");
+        ROS_INFO("Position constraint: x: %f, y: %f, z: %f",grasp_goal.delta.x, grasp_goal.delta.y, grasp_goal.delta.z);
+        point_in.header = grasp_goal.delta.header;
+        point_in.point.x = grasp_goal.delta.x;
+        point_in.point.y = grasp_goal.delta.y;
+        point_in.point.z = grasp_goal.delta.z;
+
+        /// Orientation constraint (static)
+        ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",grasp_goal.delta.roll, grasp_goal.delta.pitch, grasp_goal.delta.yaw);
+        quat_in.header = grasp_goal.delta.header;
+        quat_in.quaternion = tf::createQuaternionMsgFromRollPitchYaw(grasp_goal.delta.roll, grasp_goal.delta.pitch, grasp_goal.delta.yaw);
+
+        /// Transform to base_link
+        ros::Time stamp = ros::Time(0);
+        try
+        {
+            listener_.waitForTransform("/base_link", point_in.header.frame_id,stamp,ros::Duration(1.0));
+            listener_.transformPoint("/base_link", stamp, point_in, point_in.header.frame_id, point_out);
+            listener_.transformQuaternion("/base_link", stamp ,quat_in, quat_in.header.frame_id, quat_out);
+        }
+        catch (tf::TransformException ex)
+        {
+            ROS_ERROR("%s", ex.what());
+            return false;
+        }
+
+        // Temp: check frame_ids
+        ROS_INFO("Frame IDs are %s and %s", point_out.header.frame_id.c_str(), quat_out.header.frame_id.c_str());
+
+        /// Fill in data in goal
+        goal.position_constraint.header         = point_out.header;
+        goal.position_constraint.position       = point_out.point;
+        goal.orientation_constraint.header      = quat_out.header;
+        goal.orientation_constraint.orientation = quat_out.quaternion;
+    }
+    else
+    {
+        ROS_WARN("Neither significant absolute nor significant delta goal, aborting");
+        return false;
+    }
 
     /// Default: sphere with radius 2 cm
     ROS_INFO("Position constriant: constraint region shape");
     goal.position_constraint.constraint_region_shape.type = goal.position_constraint.constraint_region_shape.SPHERE;
     goal.position_constraint.constraint_region_shape.dimensions.push_back(0.02);
 
-    /// Orientation constraint (static)
-    ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
-    goal.orientation_constraint.orientation = tf::createQuaternionMsgFromRollPitchYaw(grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
     ROS_INFO("Orientation constraint: tolerances");
     goal.orientation_constraint.absolute_roll_tolerance = 0.3;
     goal.orientation_constraint.absolute_pitch_tolerance = 0.3;
@@ -197,11 +285,17 @@ void WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
     goal.stiffness.torque.y = 50;
     goal.stiffness.torque.z = 50;
 
+    // ToDo: delta goal
+
     // ToDo: 'sample' yaw
     // ToDo: perform pre_grasp
-    // ToDo: delta goal
+    //  How does it actually work?
+    //  A position constraint basically has a target_point_offset and a position, can we use this?
+    //  Might be useful anyway (also for looking at something)
+
     // ToDo: first joint pos only
 
+    return true;
 }
 
 void WholeBodyPlanner::PublishMarkers()
