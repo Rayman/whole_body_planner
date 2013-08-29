@@ -143,6 +143,14 @@ void WholeBodyPlanner::goalCBOldLeft()
     ROS_INFO("Plan, simulate, execute");
     bool result = planSimExecute(goal);
 
+    /// If succeeded, pre-grasp required (meaning moving to an offset) and first_joint_pos_only is false:
+    /// Perform grasp motion as well (but this time with target_point_offset.x zero)
+    if (result && grasp_goal.PERFORM_PRE_GRASP && !grasp_goal.FIRST_JOINT_POS_ONLY)
+    {
+        goal.position_constraint.target_point_offset.x = 0.0;
+        result = planSimExecute(goal);
+    }
+
     /// If succeeded, set server succeeded
     if (result)
     {
@@ -176,6 +184,14 @@ void WholeBodyPlanner::goalCBOldRight()
     /// Plan, simulate and execute
     ROS_INFO("Plan, simulate, execute");
     bool result = planSimExecute(goal);
+
+    /// If succeeded, pre-grasp required (meaning moving to an offset) and first_joint_pos_only is false:
+    /// Perform grasp motion as well (but this time with target_point_offset.x zero)
+    if (result && grasp_goal.PERFORM_PRE_GRASP && !grasp_goal.FIRST_JOINT_POS_ONLY)
+    {
+        goal.position_constraint.target_point_offset.x = 0.0;
+        result = planSimExecute(goal);
+    }
 
     /// If succeeded, set server succeeded
     if (result)
@@ -286,15 +302,21 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
     goal.stiffness.torque.y = 50;
     goal.stiffness.torque.z = 50;
 
-    // ToDo: delta goal
+    /// Incase of pre-grasp = true: add pre-grasp offset to target_point_offset
+    if (grasp_goal.PERFORM_PRE_GRASP)
+    {
+        goal.position_constraint.target_point_offset.x = 0.20;
+        goal.position_constraint.target_point_offset.y = 0.0;
+        goal.position_constraint.target_point_offset.z = 0.0;
+    }
 
     // ToDo: 'sample' yaw
-    // ToDo: perform pre_grasp
+    // ToDo: perform pre_grasp (test: target_point_offset needs to be integrated in whole-body-controller)
     //  How does it actually work?
     //  A position constraint basically has a target_point_offset and a position, can we use this?
     //  Might be useful anyway (also for looking at something)
 
-    // ToDo: first joint pos only
+    // ToDo: first joint pos only (test: target_point_offset needs to be integrated in whole-body-controller)
 
     return true;
 }
