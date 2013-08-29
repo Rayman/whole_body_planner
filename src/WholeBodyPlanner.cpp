@@ -50,21 +50,23 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     /// Get initial positions from robot interface
     std::map<std::string, double> joint_position_map = robot_state_interface_.getJointPositions();
 
+    /// Set initial state simulator (setInitialJointConfiguration)
+    simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
+
     /// Compute constraints
     bool plan_result = false;
     if (planner_ == 0)
     {
-        planner_empty_.setInitialJointPositions(joint_position_map);
+        //planner_empty_.setInitialJointPositions(joint_position_map);
         plan_result = planner_empty_.computeConstraints(goal, constraints_);
     }
     else if (planner_ == 1)
     {
-        planner_topological_.setInitialJointPositions(joint_position_map);
         plan_result = planner_topological_.computeConstraints(goal, constraints_);
     }
     else if (planner_ == 2)
     {
-        planner_global_.setInitialJointPositions(joint_position_map);
+        planner_global_.setStartPose(simulator_.getStartPose(goal.position_constraint.link_name));
         plan_result = planner_global_.computeConstraints(goal, constraints_);
     }
     ROS_INFO("Computed plan, result = %d",plan_result);
@@ -75,8 +77,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     {
         /// Publish markers
         PublishMarkers();
-        /// Set initial state simulator (setInitialJointConfiguration)
-        simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
+
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
         // ToDo: Don't hardcode max_iter

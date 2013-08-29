@@ -23,8 +23,6 @@ public:
       */
     Planner()
     {
-        // ToDo: don't hardcode
-        wbc_ = new WholeBodyController(0.05);
     }
 
     /**
@@ -44,7 +42,7 @@ public:
       * @param map containing joint names and corresponding joint positions
       */
     // ToDo: make const (need to change wbc as well
-    bool setInitialJointPositions(std::map<std::string, double>& joint_position_map)
+    /*bool setInitialJointPositions(std::map<std::string, double>& joint_position_map)
     {
         for (std::map<std::string, double>::iterator it = joint_position_map.begin(); it != joint_position_map.end(); ++it)
         {
@@ -52,13 +50,9 @@ public:
         }
         return true;
     }
-
+    */
 protected:
 
-    /**
-      * Whole body controller object for forward simulation
-      */
-    WholeBodyController* wbc_;
 
 };
 

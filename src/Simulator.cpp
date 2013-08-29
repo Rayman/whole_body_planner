@@ -34,6 +34,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
     path_.header.frame_id = constraints[0].position_constraint.header.frame_id;
     path_.poses.resize(0);
 
+
     for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin(); it_constraints != constraints.end(); ++it_constraints)
     {
         ROS_INFO("Checking constraint %i for feasibility",error_index);
@@ -54,6 +55,17 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
         goal_pose.pose.orientation = constraint.orientation_constraint.orientation;
         goal_pose.header.frame_id = constraint.position_constraint.header.frame_id;
         cartesian_impedance->setGoal(goal_pose);
+
+        // ToDo:  give constraint stiffnesses!
+        // ToDo:  give constraint regions!
+
+        constraint.stiffness.force.x = 100;
+        constraint.stiffness.force.y = 100;
+        constraint.stiffness.force.z = 100;
+        constraint.stiffness.torque.x = 5;
+        constraint.stiffness.torque.y = 5;
+        constraint.stiffness.torque.z = 5;
+
         cartesian_impedance->setImpedance(constraint.stiffness);
         cartesian_impedance->setPositionTolerance(constraint.position_constraint.constraint_region_shape);
         cartesian_impedance->setOrientationTolerance(constraint.orientation_constraint.absolute_roll_tolerance, constraint.orientation_constraint.absolute_pitch_tolerance, constraint.orientation_constraint.absolute_yaw_tolerance);
@@ -70,32 +82,24 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
 
         // Update the wbc until either the constraint is satisfied or the maximum number of iterations has been met        
         unsigned int iter = 0;
+        double delta_time = ros::Time::now().toSec();
         while (iter < max_iter && cartesian_impedance->getStatus() != 1)
         {
-            //ROS_INFO("Updating WBC");
             wbc_->update(q_ref_, qdot_ref_);
-            //ROS_INFO("Updated WBC");
-            /*
-            for(unsigned int i = 0; i < wbc_->getJointNames().size(); ++i)
-            {
-                wbc_->setMeasuredJointPosition(wbc_->getJointNames()[i], wbc_->getJointReferences()[i]);
-
-                //std::cout<<wbc_->getJointNames()[i]<<": "<<wbc_->getJointReferences()[i]<<std::endl;
-            }
-            */
             for (std::map<std::string, unsigned int>::iterator iter2 = joint_name_to_index_.begin(); iter2 != joint_name_to_index_.end(); ++iter2)
             {
-                ROS_INFO("Setting %s to %f",iter2->first.c_str(),q_ref_[iter2->second]);
+                //ROS_INFO("Setting %s to %f",iter2->first.c_str(),q_ref_[iter2->second]);
                 wbc_->setMeasuredJointPosition(iter2->first, q_ref_[iter2->second]);
                 //ROS_INFO("Pushing back FK Pose");
                 path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id));
             }
-            std::cout<<"Error x: "<<cartesian_impedance->getError().vel.data[0]<<" y: "<<cartesian_impedance->getError().vel.data[1]<<" z: "<<cartesian_impedance->getError().vel.data[2]<<std::endl;
+            //std::cout<<"Error x: "<<cartesian_impedance->getError().vel.data[0]<<" y: "<<cartesian_impedance->getError().vel.data[1]<<" z: "<<cartesian_impedance->getError().vel.data[2]<<std::endl;
             ++iter;
         }
-
+        ROS_WARN("\n\nTIME PASED: %f\n\n",(ros::Time::now().toSec()-delta_time));
         if (iter == max_iter)
         {
+
             // Display current position
             //FKpos = wbc_->robot_state_.getFK(goal_pose.header.frame_id);
             //ROS_INFO("FKPOS: x: %f, y: %f, z: %f",FKpos.p.x(),FKpos.p.y(),FKpos.p.z());
@@ -124,11 +128,13 @@ bool Simulator::setInitialJointConfiguration(const std::map<std::string,double>&
     /// Set amcl pose
     ROS_INFO("AMCL pose x: %f, y: %f",amcl_pose.pose.pose.position.x,amcl_pose.pose.pose.position.y);
 
+
+
     /// Convert to KDL::Frame
     KDL::Frame amcl_pose_;
     amcl_pose_.p.x(amcl_pose.pose.pose.position.x);
     amcl_pose_.p.y(amcl_pose.pose.pose.position.y);
-    amcl_pose_.p.z(amcl_pose.pose.pose.position.z);
+
     amcl_pose_.M.Quaternion(amcl_pose.pose.pose.orientation.x,
                             amcl_pose.pose.pose.orientation.y,
                             amcl_pose.pose.pose.orientation.z,
@@ -141,4 +147,10 @@ bool Simulator::setInitialJointConfiguration(const std::map<std::string,double>&
 nav_msgs::Path Simulator::getPath()
 {
     return path_;
+}
+
+KDL::Frame Simulator::getStartPose(const std::string& frame_name)
+{
+    wbc_->robot_state_.collectFKSolutions();
+    return wbc_->robot_state_.getFK(frame_name);
 }

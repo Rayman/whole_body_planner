@@ -9,7 +9,6 @@ PlannerTopological::PlannerTopological()
 
 PlannerTopological::~PlannerTopological()
 {
-    delete wbc_;
 }
 
 bool PlannerTopological::computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)

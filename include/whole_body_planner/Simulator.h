@@ -56,6 +56,11 @@ public:
       */
     nav_msgs::Path getPath();
 
+    /**
+      * Returns the starting pose of frame
+      */
+    KDL::Frame getStartPose(const std::string& frame_name);
+
 protected:
 
     /**

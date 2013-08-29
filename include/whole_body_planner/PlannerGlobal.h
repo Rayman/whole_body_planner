@@ -32,6 +32,7 @@ public:
       */
     bool computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
+    void setStartPose(KDL::Frame startPose);
 protected:
 
     /**
@@ -43,6 +44,11 @@ protected:
       * RViz Visualization
       */
     PlanningVisualizer* visualizer_;
+
+    /**
+      *
+      */
+    KDL::Frame start_pose_;
 
 };
 
