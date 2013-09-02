@@ -117,6 +117,13 @@ protected:
     void PublishMarkers();
 
     /**
+      * Assigns cartesian impedance stiffnesses and constraint region parameters
+      * @param goal: goal definition
+      */
+    void assignImpedance(const amigo_whole_body_controller::ArmTaskGoal &goal);
+
+
+    /**
       * Functions publishes end-effector trajectory
       */
     void PublishTrajectory(nav_msgs::Path& trajectory);

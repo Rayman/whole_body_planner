@@ -78,6 +78,9 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         /// Publish markers
         PublishMarkers();
 
+        /// Assign impedance parameters
+        assignImpedance(goal);
+
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
         // ToDo: Don't hardcode max_iter
@@ -349,4 +352,39 @@ void WholeBodyPlanner::PublishTrajectory(nav_msgs::Path &trajectory)
 {
     // ToDo: fill trajectory and publish result
     trajectory_pub_.publish(trajectory);
+}
+
+void WholeBodyPlanner::assignImpedance(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint)
+{
+    // ToDo: dynamic impedances dependent on constraint, i.e. start and goal different characteristics
+    // ToDo: default values in yaml files.
+    for (unsigned int i = 0; i < constraints_.size(); i++)
+    {
+        // Assign Stiffness
+        // Default values not needed, since cartesian impedance assumes that zero stiffness is a non-constrained dof?
+        constraints_[i].stiffness = goal_constraint.stiffness;
+
+        // Position constraints
+        if (!goal_constraint.position_constraint.constraint_region_shape.dimensions.empty())
+        {
+            constraints_[i].position_constraint.constraint_region_shape = goal_constraint.position_constraint.constraint_region_shape;
+        }
+        // Default: sphere with radius 2 cm
+        else {
+            constraints_[i].position_constraint.constraint_region_shape.type = constraints_[i].position_constraint.constraint_region_shape.SPHERE;
+            constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(0.02);
+        }
+
+        // Orientation constraints
+        if (goal_constraint.orientation_constraint.absolute_roll_tolerance == 0) constraints_[i].orientation_constraint.absolute_roll_tolerance = 1.0;
+        else constraints_[i].orientation_constraint.absolute_roll_tolerance = goal_constraint.orientation_constraint.absolute_roll_tolerance;
+
+        if (goal_constraint.orientation_constraint.absolute_pitch_tolerance == 0) constraints_[i].orientation_constraint.absolute_pitch_tolerance = 1.0;
+        else constraints_[i].orientation_constraint.absolute_pitch_tolerance = goal_constraint.orientation_constraint.absolute_pitch_tolerance;
+
+        if (goal_constraint.orientation_constraint.absolute_yaw_tolerance == 0) constraints_[i].orientation_constraint.absolute_yaw_tolerance = 1.0;
+        else constraints_[i].orientation_constraint.absolute_yaw_tolerance = goal_constraint.orientation_constraint.absolute_yaw_tolerance;
+
+    }
+
 }

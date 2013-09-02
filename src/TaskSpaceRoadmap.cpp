@@ -97,7 +97,7 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
 
     if(!start.satisfiesBounds())
     {
-        // DIRTY HACK
+        // DIRTY HACK (see SetBounds())
         ROS_WARN("Start pose out of bounds, x = %f, y = %f z = %f",start[0],start[1],start[2]);
         start.enforceBounds();
         ROS_WARN("Start became, x = %f, y = %f z = %f",start[0],start[1],start[2]);
@@ -159,6 +159,12 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan
         constraint.position_constraint.position.y = real_state->values[1];
         constraint.position_constraint.position.z = real_state->values[2];
 
+        // Add Stiffness
+
+        // Add Constraint Region
+
+        // Add Tolerances
+
         // Add to constraint vector
         constraints_.push_back(constraint);
     }
@@ -193,13 +199,14 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space)
     space->as<ob::RealVectorStateSpace>()->setBounds( bounds );
 }
 
+// ToDo: Convert to correct msg Type
 std::vector<std::vector<double> > TaskSpaceRoadmap::simplifyPlan()
 {
     simple_setup_->simplifySolution();
     std::vector<std::vector<double> > coordinates;
     return coordinates = convertSolutionToVector();
 }
-
+// ToDo: Convert to correct msg Type
 std::vector<std::vector<double> > TaskSpaceRoadmap::interpolatePlan()
 {
     simple_setup_->getSolutionPath().interpolate();

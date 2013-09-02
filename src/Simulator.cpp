@@ -48,24 +48,12 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
                 wbc_->removeMotionObjective(wbc_->getCartesianImpedances(constraint.position_constraint.link_name,constraint.position_constraint.header.frame_id)[i]);
             }
         }
-
         // Transform constrain to goal_pose for cartesian impedance wbc
         geometry_msgs::PoseStamped goal_pose;
         goal_pose.pose.position = constraint.position_constraint.position;
         goal_pose.pose.orientation = constraint.orientation_constraint.orientation;
         goal_pose.header.frame_id = constraint.position_constraint.header.frame_id;
         cartesian_impedance->setGoal(goal_pose);
-
-        // ToDo:  give constraint stiffnesses!
-        // ToDo:  give constraint regions!
-
-        constraint.stiffness.force.x = 100;
-        constraint.stiffness.force.y = 100;
-        constraint.stiffness.force.z = 100;
-        constraint.stiffness.torque.x = 5;
-        constraint.stiffness.torque.y = 5;
-        constraint.stiffness.torque.z = 5;
-
         cartesian_impedance->setImpedance(constraint.stiffness);
         cartesian_impedance->setPositionTolerance(constraint.position_constraint.constraint_region_shape);
         cartesian_impedance->setOrientationTolerance(constraint.orientation_constraint.absolute_roll_tolerance, constraint.orientation_constraint.absolute_pitch_tolerance, constraint.orientation_constraint.absolute_yaw_tolerance);
@@ -93,7 +81,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
                 //ROS_INFO("Pushing back FK Pose");
                 path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id));
             }
-            //std::cout<<"Error x: "<<cartesian_impedance->getError().vel.data[0]<<" y: "<<cartesian_impedance->getError().vel.data[1]<<" z: "<<cartesian_impedance->getError().vel.data[2]<<std::endl;
+            //std::cout<<"Error x: "<<cartesian_impedance->getError().vel.data[0]<<" y: "<<cartesian_impedance->getError().vel.data[1]<<" z: "<<cartesian_impedance->getError().vel.data[2]<<" r: "<<cartesian_impedance->getError().rot.data[0]<<" p: "<<cartesian_impedance->getError().rot.data[1]<<" y: "<<cartesian_impedance->getError().rot.data[2]<<std::endl;
             ++iter;
         }
         ROS_WARN("\n\nTIME PASED: %f\n\n",(ros::Time::now().toSec()-delta_time));
@@ -108,6 +96,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
         }
         else
         {
+            ROS_INFO("Feasible joint-space trajectory found for constraint: %i",error_index);
             ++error_index;
         }
     }
