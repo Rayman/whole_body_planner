@@ -98,7 +98,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     {
         //execute_result = executer_.Execute(constraints_);
         execute_result = true;
-        ROS_WARN("Execution disabled!!!");
+        //ROS_WARN("Computed path is feasible, but Execution disabled!!!");
     }
     return execute_result;
 }
@@ -369,20 +369,20 @@ void WholeBodyPlanner::assignImpedance(const amigo_whole_body_controller::ArmTas
         {
             constraints_[i].position_constraint.constraint_region_shape = goal_constraint.position_constraint.constraint_region_shape;
         }
-        // Default: sphere with radius 2 cm
+        // Default: sphere with radius 3.5 cm
         else {
             constraints_[i].position_constraint.constraint_region_shape.type = constraints_[i].position_constraint.constraint_region_shape.SPHERE;
-            constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(0.02);
+            constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(0.035);
         }
 
         // Orientation constraints
-        if (goal_constraint.orientation_constraint.absolute_roll_tolerance == 0) constraints_[i].orientation_constraint.absolute_roll_tolerance = 1.0;
+        if (goal_constraint.orientation_constraint.absolute_roll_tolerance == 0) constraints_[i].orientation_constraint.absolute_roll_tolerance = 0.3;
         else constraints_[i].orientation_constraint.absolute_roll_tolerance = goal_constraint.orientation_constraint.absolute_roll_tolerance;
 
-        if (goal_constraint.orientation_constraint.absolute_pitch_tolerance == 0) constraints_[i].orientation_constraint.absolute_pitch_tolerance = 1.0;
+        if (goal_constraint.orientation_constraint.absolute_pitch_tolerance == 0) constraints_[i].orientation_constraint.absolute_pitch_tolerance = 0.3;
         else constraints_[i].orientation_constraint.absolute_pitch_tolerance = goal_constraint.orientation_constraint.absolute_pitch_tolerance;
 
-        if (goal_constraint.orientation_constraint.absolute_yaw_tolerance == 0) constraints_[i].orientation_constraint.absolute_yaw_tolerance = 1.0;
+        if (goal_constraint.orientation_constraint.absolute_yaw_tolerance == 0) constraints_[i].orientation_constraint.absolute_yaw_tolerance = 0.3;
         else constraints_[i].orientation_constraint.absolute_yaw_tolerance = goal_constraint.orientation_constraint.absolute_yaw_tolerance;
 
     }

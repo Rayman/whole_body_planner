@@ -88,6 +88,14 @@ protected:
       */
     nav_msgs::Path path_;
 
+    void PublishMarkers(const geometry_msgs::PoseStamped& goal, bool result);
+
+    /** \brief A shared ROS publisher for visualization in RViz */
+    ros::Publisher marker_pub_;
+
+    /** \brief A shared private node handle */
+    ros::NodeHandle n_;
+
 };
 
 #endif // SIMULATOR_H

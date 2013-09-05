@@ -7,6 +7,7 @@ PlanningVisualizer::PlanningVisualizer()
 
 PlanningVisualizer::~PlanningVisualizer()
 {
+    // ToDo here we want to delete all the markers which were published
     marker_pub_.shutdown();
 }
 
@@ -81,6 +82,7 @@ void PlanningVisualizer::displayPath( const std::vector<std::vector<double> > co
     // Set the frame ID and timestamp.
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
+    marker.lifetime = ros::Duration(15.0);
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     marker.ns = "result_path";
@@ -93,7 +95,7 @@ void PlanningVisualizer::displayPath( const std::vector<std::vector<double> > co
 
     // Provide a new id every call to this function
     static int result_id = 0;
-    marker.id = result_id++;
+    marker.id = result_id;
 
     marker.scale.x = 0.004;
     marker.scale.y = 0.01;
@@ -169,6 +171,7 @@ void PlanningVisualizer::displaySamples(ompl::base::PlannerDataPtr planner_data_
     // Set the frame ID and timestamp.
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
+    marker.lifetime = ros::Duration(10.0);
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     marker.ns = "sample_locations";
@@ -238,6 +241,7 @@ void PlanningVisualizer::displayGraph(ompl::base::PlannerDataPtr planner_data_)
     // Set the frame ID and timestamp.
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
+    marker.lifetime = ros::Duration(15.0);
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     marker.ns = "space_exploration";

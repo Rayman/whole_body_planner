@@ -28,7 +28,7 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
     {
         //ROS_WARN("Tip frame = %s",constraints[i].position_constraint.link_name.c_str());
         action_client_->sendGoal(constraints[i]);
-        action_client_->waitForResult();
+        action_client_->waitForResult(ros::Duration(5.0));
     }
 
     /// Check state
@@ -39,6 +39,7 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
     }
     else
     {
+        ROS_INFO("Arrived at goal!");
         return true;
     }
 }
