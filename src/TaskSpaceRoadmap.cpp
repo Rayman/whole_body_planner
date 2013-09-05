@@ -39,7 +39,6 @@ bool TaskSpaceRoadmap::isStateValid(const ob::State *state)
 
 TaskSpaceRoadmap::TaskSpaceRoadmap()
 {
-    ROS_INFO("Started global planning component");
     ROS_INFO_STREAM( "OMPL version: " << OMPL_VERSION );
 
     // Octomap subscription
@@ -65,6 +64,7 @@ TaskSpaceRoadmap::TaskSpaceRoadmap()
 
     // The interval in which obstacles are checked for between states ( trade-off speed // accuracy )
     simple_setup_->getSpaceInformation()->setStateValidityCheckingResolution(0.005); //0.005
+    ROS_INFO("Started global planning component");
 }
 
 TaskSpaceRoadmap::~TaskSpaceRoadmap()
@@ -74,12 +74,15 @@ TaskSpaceRoadmap::~TaskSpaceRoadmap()
     delete octomap_;
 }
 
-bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal_constraint, const geometry_msgs::PoseStamped &start_pose)
+bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal_constraint, const KDL::Frame &start_pose)
 {
+    // Reset constraints
+    constraints_.clear();
+
     // Save goal_constraint
     goal_constraint_ = goal_constraint;
-    ROS_INFO("Creating roadmap");
 
+    ROS_INFO("Creating roadmap");
     // Set the bounds
     setBounds(simple_setup_->getStateSpace());
 
@@ -87,14 +90,22 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     {
         // Roadmap already exists, only deleting start and goal states.
         prm->clearQuery();
+        prm->getProblemDefinition()->clearSolutionPaths();
+        prm->getProblemDefinition()->clearGoal();
+        prm->getProblemDefinition()->clearStartStates();
     }
 
     // Set the start and goal states
     ob::ScopedState<> start(simple_setup_->getStateSpace());
+
+    start[0] = start_pose.p.x();
+    start[1] = start_pose.p.y();
+    start[2] = start_pose.p.z();
+    /*
     start[0] = start_pose.pose.position.x;
     start[1] = start_pose.pose.position.y;
     start[2] = start_pose.pose.position.z;
-
+    */
     if(!start.satisfiesBounds())
     {
         // DIRTY HACK (see SetBounds())
@@ -148,6 +159,7 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan
             ROS_INFO("STATE NOT VALID");
             continue; // no data?
         }
+
         // Convert to RealVectorStateSpace
         const ob::RealVectorStateSpace::StateType *real_state =
                 static_cast<const ob::RealVectorStateSpace::StateType*>(state);
@@ -166,6 +178,8 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan
         // Add Tolerances
 
         // Add to constraint vector
+
+        // ToDo nice way to find goal and add orientation constraint
         constraints_.push_back(constraint);
     }
     return constraints_;
@@ -180,7 +194,7 @@ ob::StateSpacePtr TaskSpaceRoadmap::constructSpace(const unsigned int dimension)
 void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space)
 {
     // Set the bounds for the R^3 now completely dependent on octomap dimensions
-    // Problem: when arm is behind kinect, then always outside bounds!
+    // Problem: when arm is behind kinect, then always outside bounds! and area is TOO big for most planning problems
     // Hardcoded
     ob::RealVectorBounds bounds( DIMENSIONS );
 
@@ -262,9 +276,9 @@ std::vector<std::vector<double> >  TaskSpaceRoadmap::convertSolutionToVector()
 //    ROS_INFO("Deleting");
 //}
 
-///////////////////////
-///      Private    ///
-///////////////////////
+/////////////////////////
+////     Private     ////
+/////////////////////////
 void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
 {
     octomap_ = octomap_msgs::binaryMsgDataToMap(msg->data);

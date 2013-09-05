@@ -32,6 +32,7 @@
 
 // Misc
 #include <vector>
+#include <kdl/frames.hpp>
 
 // Map
 #include <tue_map_3d/Map3D.h>
@@ -53,7 +54,7 @@ public:
     virtual ~TaskSpaceRoadmap();
 
     /** \brief Initial planning */
-    bool plan(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, const geometry_msgs::PoseStamped& start_pose);
+    bool plan(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, const KDL::Frame& start_pose);
 
     /** \brief Return planning result */
     std::vector<amigo_whole_body_controller::ArmTaskGoal>& getPlan();
