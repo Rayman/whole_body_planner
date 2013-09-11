@@ -59,11 +59,17 @@ public:
     /** \brief Return planning result */
     std::vector<amigo_whole_body_controller::ArmTaskGoal>& getPlan();
 
-    /** \brief Simplifiy plan */
-    std::vector<std::vector<double> > simplifyPlan();
+    /** \brief Simplifiy plan to vector format */
+    std::vector<std::vector<double> > simplifyPlanToVector();
 
-    /** \brief Interpolate plan */
-    std::vector<std::vector<double> > interpolatePlan();
+    /** \brief Simplifiy plan to ArmTaskGoal format */
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> simplifyPlan();
+
+    /** \brief Interpolate plan to vector format */
+    std::vector<std::vector<double> > interpolatePlanToVector();
+
+    /** \brief Simplifiy plan to ArmTaskGoal format */
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> interpolatePlan();
 
     /** \brief Re planning */
     bool replan();
@@ -88,6 +94,7 @@ public:
 
     /** \brief Convert states in real vector space */
     std::vector<std::vector<double> > convertSolutionToVector();
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> convertSolutionToArmTaskGoal();
 
     /** \brief Delete a state */
     unsigned int deleteMilestone( const std::vector<double> coordinate );
@@ -110,7 +117,7 @@ public:
     ompl::base::StateSpacePtr constructSpace(const unsigned int dimension = 3);
 
     /** \brief Set the bounds */
-    void setBounds(ompl::base::StateSpacePtr space);
+    void setBounds(ompl::base::StateSpacePtr space, const KDL::Frame &start_pose);
 
 protected:
 

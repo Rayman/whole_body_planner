@@ -37,6 +37,11 @@ public:
       */
     void setStartPose(KDL::Frame startPose);
 
+    /**
+      *
+      */
+    void interpolateConstraints(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
+
 protected:
 
     /**

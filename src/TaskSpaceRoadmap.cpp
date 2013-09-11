@@ -39,7 +39,8 @@ bool TaskSpaceRoadmap::isStateValid(const ob::State *state)
 
 TaskSpaceRoadmap::TaskSpaceRoadmap()
 {
-    ROS_INFO_STREAM( "OMPL version: " << OMPL_VERSION );
+    //ROS_INFO_STREAM( "OMPL version: " << OMPL_VERSION );
+    ROS_INFO("Initializing plannerglobal");
 
     // Octomap subscription
     octomap_ = new octomap::OcTree(0.01);
@@ -64,7 +65,8 @@ TaskSpaceRoadmap::TaskSpaceRoadmap()
 
     // The interval in which obstacles are checked for between states ( trade-off speed // accuracy )
     simple_setup_->getSpaceInformation()->setStateValidityCheckingResolution(0.005); //0.005
-    ROS_INFO("Started global planning component");
+    ROS_INFO("Initialized plannerglobal");
+
 }
 
 TaskSpaceRoadmap::~TaskSpaceRoadmap()
@@ -83,8 +85,9 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     goal_constraint_ = goal_constraint;
 
     ROS_INFO("Creating roadmap");
+
     // Set the bounds
-    setBounds(simple_setup_->getStateSpace());
+    setBounds(simple_setup_->getStateSpace(), start_pose);
 
     if (!prm->milestoneCount()==0)
     {
@@ -101,11 +104,8 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     start[0] = start_pose.p.x();
     start[1] = start_pose.p.y();
     start[2] = start_pose.p.z();
-    /*
-    start[0] = start_pose.pose.position.x;
-    start[1] = start_pose.pose.position.y;
-    start[2] = start_pose.pose.position.z;
-    */
+
+    ROS_WARN("ROADMAP: Start pos, x = %f, y = %f z = %f",start[0],start[1],start[2]);
     if(!start.satisfiesBounds())
     {
         // DIRTY HACK (see SetBounds())
@@ -118,6 +118,7 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     goal[0] = goal_constraint.position_constraint.position.x;
     goal[1] = goal_constraint.position_constraint.position.y;
     goal[2] = goal_constraint.position_constraint.position.z;
+    ROS_WARN("ROADMAP: goal pos, x = %f, y = %f z = %f in %s",goal[0],goal[1],goal[2],goal_constraint.position_constraint.header.frame_id.c_str());
 
     simple_setup_->setStartAndGoalStates(start, goal);
 
@@ -187,11 +188,11 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan
 
 ob::StateSpacePtr TaskSpaceRoadmap::constructSpace(const unsigned int dimension)
 {
-    ROS_INFO("Planning in %d dimension space, STILL HARDCODED", dimension);
+    ROS_INFO("plannerglobal plans in %d dimension space, STILL HARDCODED", dimension);
     ob::StateSpacePtr space( new ob::RealVectorStateSpace( DIMENSIONS ));
     return space;
 }
-void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space)
+void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& start_pose)
 {
     // Set the bounds for the R^3 now completely dependent on octomap dimensions
     // Problem: when arm is behind kinect, then always outside bounds! and area is TOO big for most planning problems
@@ -201,31 +202,44 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space)
     double x,y,z;
     // Set minimum bound
     octomap_->getMetricMin(x,y,z);
-    bounds.setLow(0,x); bounds.setLow(1,y); bounds.setLow(2,z);
-    ROS_INFO("Octomap minimum dimensions x= %f, y = %f, z= %f", x,y,z);
+    bounds.setLow(0,start_pose.p.x()-0.6); bounds.setLow(1,start_pose.p.y()-0.6); bounds.setLow(2,0.05);
+    ROS_INFO("Octomap minimum dimensions x= %f, y = %f, z= %f, planning dimensions x= %f, y = %f, z= %f", x,y,z,start_pose.p.x()-0.6,start_pose.p.y()-0.6,0.05 );
 
 
     // Set maximum bound
     octomap_->getMetricMax(x,y,z);
-    bounds.setHigh(0,x); bounds.setHigh(1,y); bounds.setHigh(2,z);
+    bounds.setHigh(0,start_pose.p.x()+0.6); bounds.setHigh(1,start_pose.p.x()+0.6); bounds.setHigh(2,1.2);
     ROS_INFO("Octomap maximum dimensions x = %f, y = %f, z = %f", x,y,z);
 
     space->as<ob::RealVectorStateSpace>()->setBounds( bounds );
 }
 
-// ToDo: Convert to correct msg Type
-std::vector<std::vector<double> > TaskSpaceRoadmap::simplifyPlan()
+
+std::vector<std::vector<double> > TaskSpaceRoadmap::simplifyPlanToVector()
 {
     simple_setup_->simplifySolution();
     std::vector<std::vector<double> > coordinates;
     return coordinates = convertSolutionToVector();
 }
-// ToDo: Convert to correct msg Type
-std::vector<std::vector<double> > TaskSpaceRoadmap::interpolatePlan()
+std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::simplifyPlan()
+{
+    simple_setup_->simplifySolution();
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_simplified;
+    return constraints_simplified = convertSolutionToArmTaskGoal();
+}
+
+std::vector<std::vector<double> > TaskSpaceRoadmap::interpolatePlanToVector()
 {
     simple_setup_->getSolutionPath().interpolate();
     std::vector<std::vector<double> > coordinates;
     return coordinates = convertSolutionToVector();
+}
+
+std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::interpolatePlan()
+{
+    simple_setup_->getSolutionPath().interpolate();
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_interpolated;
+    return constraints_interpolated = convertSolutionToArmTaskGoal();
 }
 
 void TaskSpaceRoadmap::printTags()
@@ -237,7 +251,7 @@ void TaskSpaceRoadmap::printTags()
     }
 }
 
-std::vector<std::vector<double> >  TaskSpaceRoadmap::convertSolutionToVector()
+std::vector<std::vector<double> > TaskSpaceRoadmap::convertSolutionToVector()
 {
     // Setup vector to return coordinates
     std::vector<double> coordinate(DIMENSIONS);
@@ -269,6 +283,37 @@ std::vector<std::vector<double> >  TaskSpaceRoadmap::convertSolutionToVector()
         coordinates.push_back(coordinate);
     }
     return coordinates;
+}
+
+std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::convertSolutionToArmTaskGoal()
+{
+    // Setup vector to return coordinates
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints;
+
+    // Get data
+    og::PathGeometric path = simple_setup_->getSolutionPath();
+
+    const std::vector<ob::State*>& states = path.getStates();
+    constraints.resize(states.size());
+
+    for( int state_id = 0; state_id < int ( states.size() ); ++state_id )
+    {
+        const ob::State *state = states[ state_id ];
+        if (!state)
+            continue; // no data?
+
+
+        // Convert to RealVectorStateSpace
+        const ob::RealVectorStateSpace::StateType *real_state =
+                static_cast<const ob::RealVectorStateSpace::StateType*>(state);
+
+        constraints[state_id].position_constraint.position.x = real_state->values[0];
+        constraints[state_id].position_constraint.position.y = real_state->values[1];
+        constraints[state_id].position_constraint.position.z = real_state->values[2];
+        constraints[state_id].position_constraint.link_name = goal_constraint_.position_constraint.link_name;
+        constraints[state_id].position_constraint.header.frame_id = goal_constraint_.position_constraint.header.frame_id;
+    }
+    return constraints;
 }
 
 //unsigned int TaskSpaceRoadmap::deleteMilestone(const std::vector<double> coordinate)
