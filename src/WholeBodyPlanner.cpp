@@ -53,6 +53,8 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     /// Set initial state simulator (setInitialJointConfiguration)
     simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
 
+
+
     /// Compute constraints
     bool plan_result = false;
     if (planner_ == 0)
@@ -66,8 +68,28 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     }
     else if (planner_ == 2)
     {
-        planner_global_.setStartPose(simulator_.getStartPose(goal.position_constraint.link_name));
-        plan_result = planner_global_.computeConstraints(goal, constraints_);
+        /// Set the initial pose of the goal frame in map frame
+        planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
+
+        /// Accordingly transform the goal pose of the goal frame from root to map frame
+        KDL::Frame Frame_map_goal = simulator_.transformToMap(goal);
+
+        /// Convert back to constraint-msg
+        // Goal is const at this point, discuss with Janno
+        amigo_whole_body_controller::ArmTaskGoal goal_map = goal;
+        goal_map.position_constraint.header.frame_id = "map";
+        goal_map.position_constraint.position.x = Frame_map_goal.p.x();
+        goal_map.position_constraint.position.y = Frame_map_goal.p.y();
+        goal_map.position_constraint.position.z = Frame_map_goal.p.z();
+        Frame_map_goal.M.GetQuaternion(goal_map.orientation_constraint.orientation.x,
+                               goal_map.orientation_constraint.orientation.y,
+                               goal_map.orientation_constraint.orientation.z,
+                               goal_map.orientation_constraint.orientation.w);
+
+        plan_result = planner_global_.computeConstraints(goal_map, constraints_);
+
+        /// Transform back to root frame
+        simulator_.transformToRoot(constraints_, goal);
     }
     ROS_INFO("Computed plan, result = %d",plan_result);
 
@@ -84,8 +106,24 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
         // ToDo: Don't hardcode max_iter
-        plan_feasible = simulator_.checkFeasibility(constraints_, 100, error_index);
+        plan_feasible = simulator_.checkFeasibility(constraints_, 250, error_index);
         ROS_INFO("Checked feasibility, error_index = %i", error_index);
+
+        /// Failure handling
+        if(!plan_feasible){
+            if (planner_ == 0)
+            {
+                ROS_WARN("Failure handling not implemented for plannerempty");
+            }
+            else if (planner_ == 1)
+            {
+                ROS_WARN("Failure handling not implemented for plannertopological");
+            }
+            else if (planner_ == 2)
+            {
+                ROS_WARN("Failure handling not implemented for plannerglobal");
+            }
+        }
 
         /// Publish computed trajectory
         nav_msgs::Path path = simulator_.getPath();
@@ -96,7 +134,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     bool execute_result = false;
     if (plan_feasible)
     {
-        //execute_result = executer_.Execute(constraints_);
+        execute_result = executer_.Execute(constraints_);
         execute_result = true;
         //ROS_WARN("Computed path is feasible, but Execution disabled!!!");
     }
@@ -139,8 +177,10 @@ void WholeBodyPlanner::goalCBOldLeft()
 
     /// Set link names
     ROS_INFO("Setting link names");
-    goal.position_constraint.link_name = "/grippoint_left";
-    goal.orientation_constraint.link_name = "/grippoint_left";
+    goal.position_constraint.link_name = "grippoint_left";
+    goal.orientation_constraint.link_name = "grippoint_left";
+
+    if(goal.position_constraint.header.frame_id == "/base_link") goal.position_constraint.header.frame_id = "base_link";
 
     /// Plan, simulate and execute
     ROS_INFO("Plan, simulate, execute");
@@ -181,8 +221,8 @@ void WholeBodyPlanner::goalCBOldRight()
     }
 
     /// Set link names
-    goal.position_constraint.link_name = "/grippoint_right";
-    goal.orientation_constraint.link_name = "/grippoint_right";
+    goal.position_constraint.link_name = "grippoint_right";
+    goal.orientation_constraint.link_name = "grippoint_right";
 
     /// Plan, simulate and execute
     ROS_INFO("Plan, simulate, execute");
@@ -301,9 +341,9 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
     goal.stiffness.force.x = 100;
     goal.stiffness.force.y = 100;
     goal.stiffness.force.z = 100;
-    goal.stiffness.torque.x = 50;
-    goal.stiffness.torque.y = 50;
-    goal.stiffness.torque.z = 50;
+    goal.stiffness.torque.x = 5;
+    goal.stiffness.torque.y = 5;
+    goal.stiffness.torque.z = 5;
 
     /// Incase of pre-grasp = true: add pre-grasp offset to target_point_offset
     if (grasp_goal.PERFORM_PRE_GRASP)
