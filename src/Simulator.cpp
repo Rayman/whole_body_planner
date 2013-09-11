@@ -56,7 +56,15 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
         goal_pose.pose.position = constraint.position_constraint.position;
         goal_pose.pose.orientation = constraint.orientation_constraint.orientation;
         goal_pose.header.frame_id = constraint.position_constraint.header.frame_id;
+
         cartesian_impedance->setGoal(goal_pose);
+        ROS_INFO("WBC-Simulator: Set goal.");
+        if (constraint.position_constraint.target_point_offset.x != 0.0 || constraint.position_constraint.target_point_offset.y != 0.0 || constraint.position_constraint.target_point_offset.z != 0.0)
+        {
+            ROS_INFO("WBC-Simulator: Setting cartesian pre-grasp position.");
+            cartesian_impedance->setGoalOffset(constraint.position_constraint.target_point_offset);
+
+        }
         cartesian_impedance->setImpedance(constraint.stiffness);
         cartesian_impedance->setPositionTolerance(constraint.position_constraint.constraint_region_shape);
         cartesian_impedance->setOrientationTolerance(constraint.orientation_constraint.absolute_roll_tolerance, constraint.orientation_constraint.absolute_pitch_tolerance, constraint.orientation_constraint.absolute_yaw_tolerance);
@@ -90,13 +98,13 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
             //FKpos = wbc_->robot_state_.getFK(goal_pose.header.frame_id);
             //ROS_INFO("FKPOS: x: %f, y: %f, z: %f",FKpos.p.x(),FKpos.p.y(),FKpos.p.z());
             ROS_INFO("Maximum iterations reached: remaining error (x,y,z): (%f, %f, %f,)",cartesian_impedance->getError().vel.data[0],cartesian_impedance->getError().vel.data[1],cartesian_impedance->getError().vel.data[2]);
-            PublishMarkers(goal_pose,false);
+            PublishMarkers(constraint,false);
             return false;
         }
         else
         {
             ROS_INFO("Feasible joint-space trajectory found for constraint: %i",error_index);
-            PublishMarkers(goal_pose,true);
+            PublishMarkers(constraint,true);
             ++error_index;
         }
     }
@@ -111,11 +119,11 @@ bool Simulator::setInitialJointConfiguration(const std::map<std::string,double>&
     /// Set joint configuration
     for(std::map<std::string, double>::const_iterator iter = joint_positions.begin(); iter != joint_positions.end(); ++iter)
     {
-        //ROS_INFO("%s = %f",iter->first.c_str(),iter->second);
+        ROS_INFO("%s = %f",iter->first.c_str(),iter->second);
         wbc_->setMeasuredJointPosition(iter->first, iter->second);
     }
     /// Set amcl pose
-    //ROS_INFO("AMCL pose x: %f, y: %f",amcl_pose.pose.pose.position.x,amcl_pose.pose.pose.position.y);
+    ROS_INFO("AMCL pose x: %f, y: %f",amcl_pose.pose.pose.position.x,amcl_pose.pose.pose.position.y);
 
     /// Convert to KDL::Frame
     KDL::Frame amcl_pose_;
@@ -136,16 +144,16 @@ nav_msgs::Path Simulator::getPath()
     return path_;
 }
 
-KDL::Frame Simulator::getStartPose(const std::string& frame_name)
+KDL::Frame Simulator::getFramePose(const std::string& frame_name)
 {
     wbc_->robot_state_.collectFKSolutions();
     return wbc_->robot_state_.getFK(frame_name);
 }
 
-void Simulator::PublishMarkers( const geometry_msgs::PoseStamped& goal, bool result)
+void Simulator::PublishMarkers( const amigo_whole_body_controller::ArmTaskGoal& constraint, bool result)
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "/map";
+    marker.header = constraint.position_constraint.header;
     marker.header.stamp = ros::Time();
     marker.lifetime = ros::Duration(15.0);
     marker.ns = "forward_sim";
@@ -156,7 +164,8 @@ void Simulator::PublishMarkers( const geometry_msgs::PoseStamped& goal, bool res
     marker.scale.x = 1;
     marker.scale.y = 1;
     marker.scale.z = 0.2;
-    marker.pose = goal.pose;
+    marker.pose.position = constraint.position_constraint.position;
+    marker.pose.orientation = constraint.orientation_constraint.orientation;
     marker.color.a = 0.3;
     if (result){
         marker.color.r = 0.1; marker.color.g = 0.99; marker.color.b = 0.1; //green
@@ -167,3 +176,64 @@ void Simulator::PublishMarkers( const geometry_msgs::PoseStamped& goal, bool res
     marker_pub_.publish( marker );
 }
 
+KDL::Frame Simulator::transformToMap( const amigo_whole_body_controller::ArmTaskGoal& constraint )
+{
+    /// Get the goal pose in root frame
+    KDL::Frame Frame_root_goal;
+    Frame_root_goal.p.x(constraint.position_constraint.position.x);
+    Frame_root_goal.p.y(constraint.position_constraint.position.y);
+    Frame_root_goal.p.z(constraint.position_constraint.position.z);
+    Frame_root_goal.M = KDL::Rotation::Quaternion(constraint.orientation_constraint.orientation.x,
+                                                   constraint.orientation_constraint.orientation.y,
+                                                   constraint.orientation_constraint.orientation.z,
+                                                   constraint.orientation_constraint.orientation.w);
+
+    //ROS_INFO("FK pose goal in root frame (x,y,z) = (%f,%f,%f)",Frame_root_goal.p.x(),Frame_root_goal.p.y(),Frame_root_goal.p.z());
+
+    /// Get the pose of the root frame (of the goal) in map
+    std::map<std::string, KDL::Frame>::iterator itrRF = wbc_->robot_state_.fk_poses_.find(constraint.position_constraint.header.frame_id);
+    KDL::Frame Frame_map_root = itrRF->second;
+    //ROS_INFO("FK pose root frame in map (x,y,z) = (%f,%f,%f)", Frame_map_root.p.x(), Frame_map_root.p.y(), Frame_map_root.p.z());
+
+    /// Convert the goal pose to map
+    return Frame_map_root * Frame_root_goal;
+    //ROS_INFO("FK pose goal in map frame (x,y,z) = (%f,%f,%f)",Frame_map_goal.p.x(),Frame_map_goal.p.y(),Frame_map_goal.p.z());
+
+}
+
+void Simulator::transformToRoot(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints, const amigo_whole_body_controller::ArmTaskGoal &goal)
+{
+    /// Get the pose of the root frame (of the goal) in map
+    std::map<std::string, KDL::Frame>::iterator itrRF = wbc_->robot_state_.fk_poses_.find(goal.position_constraint.header.frame_id);
+    KDL::Frame Frame_root_map = itrRF->second.Inverse();
+
+    for( int constraint_id = 0; constraint_id  < int ( constraints.size() ); ++constraint_id )
+    {
+        /// Get the constraints poses in map frame
+        KDL::Frame Frame_map_goal;
+        Frame_map_goal.p.x(constraints[constraint_id].position_constraint.position.x);
+        Frame_map_goal.p.y(constraints[constraint_id].position_constraint.position.y);
+        Frame_map_goal.p.z(constraints[constraint_id].position_constraint.position.z);
+        Frame_map_goal.M = KDL::Rotation::Quaternion(constraints[constraint_id].orientation_constraint.orientation.x,
+                                                     constraints[constraint_id].orientation_constraint.orientation.y,
+                                                     constraints[constraint_id].orientation_constraint.orientation.z,
+                                                     constraints[constraint_id].orientation_constraint.orientation.w);
+        //ROS_INFO("FK pose goal in map frame (x,y,z) = (%f,%f,%f)",Frame_map_goal.p.x(),Frame_map_goal.p.y(),Frame_map_goal.p.z());
+
+        /// Transform the goal pose to root from map
+        //ROS_INFO("FK pose root frame in map (x,y,z) = (%f,%f,%f)", Frame_map_root.p.x(), Frame_map_root.p.y(), Frame_map_root.p.z());
+        KDL::Frame Frame_root_goal = Frame_root_map * Frame_map_goal;
+
+        /// Convert back to constraint
+        constraints[constraint_id].position_constraint.position.x = Frame_root_goal.p.x();
+        constraints[constraint_id].position_constraint.position.y = Frame_root_goal.p.y();
+        constraints[constraint_id].position_constraint.position.z = Frame_root_goal.p.z();
+        Frame_root_goal.M.GetQuaternion(constraints[constraint_id].orientation_constraint.orientation.x,
+                                        constraints[constraint_id].orientation_constraint.orientation.y,
+                                        constraints[constraint_id].orientation_constraint.orientation.z,
+                                        constraints[constraint_id].orientation_constraint.orientation.w);
+        constraints[constraint_id].position_constraint.header.frame_id = goal.position_constraint.header.frame_id;
+        //ROS_INFO("FK pose goal in root frame (x,y,z) = (%f,%f,%f)",Frame_root_goal.p.x(),Frame_root_goal.p.y(),Frame_root_goal.p.z());
+    }
+
+}

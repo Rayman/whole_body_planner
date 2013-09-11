@@ -57,9 +57,14 @@ public:
     nav_msgs::Path getPath();
 
     /**
-      * Returns the starting pose of frame
+      * Returns the starting pose of frame from /base_link
       */
-    KDL::Frame getStartPose(const std::string& frame_name);
+    KDL::Frame getFramePose(const std::string& frame_name);
+
+    KDL::Frame transformToMap(const amigo_whole_body_controller::ArmTaskGoal &constraint);
+
+    void transformToRoot(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints, const amigo_whole_body_controller::ArmTaskGoal& goal);
+
 
 protected:
 
@@ -88,7 +93,7 @@ protected:
       */
     nav_msgs::Path path_;
 
-    void PublishMarkers(const geometry_msgs::PoseStamped& goal, bool result);
+    void PublishMarkers(const amigo_whole_body_controller::ArmTaskGoal &constraint, bool result);
 
     /** \brief A shared ROS publisher for visualization in RViz */
     ros::Publisher marker_pub_;
