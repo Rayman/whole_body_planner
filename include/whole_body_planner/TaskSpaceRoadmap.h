@@ -72,13 +72,15 @@ public:
     std::vector<amigo_whole_body_controller::ArmTaskGoal> interpolatePlan();
 
     /** \brief Re planning */
-    bool replan();
+    bool replan(const KDL::Frame& start_pose);
 
     /** \brief Validity checker of states */
     bool isStateValid(const ob::State *state);
 
     /** \brief Allocate sampling method */
     ob::ValidStateSamplerPtr allocValidStateSampler(const ob::SpaceInformation *si);
+
+    ob::ValidStateSamplerPtr allocMaximizeClearanceStateSampler(const ob::SpaceInformation *si);
 
     /** \brief Print tags of each sample, used for debugging */
     void printTags();

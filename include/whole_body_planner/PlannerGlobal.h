@@ -31,6 +31,7 @@ public:
       * @param constraints: vector containing pointers to goal constraints
       */
     bool computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
+    bool reComputeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
     /**
       *
@@ -42,7 +43,12 @@ public:
       */
     void interpolateConstraints(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
+
 protected:
+
+
+    void publishMarkers();
+    void setOrientation(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
     /**
       * Global Planner

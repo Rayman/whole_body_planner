@@ -21,10 +21,18 @@ ob::ValidStateSamplerPtr TaskSpaceRoadmap::allocValidStateSampler(const ob::Spac
     }
 }
 
+ob::ValidStateSamplerPtr TaskSpaceRoadmap::allocMaximizeClearanceStateSampler(const ob::SpaceInformation *si)
+{
+    ob::MaximizeClearanceValidStateSampler *s = new ob::MaximizeClearanceValidStateSampler(si);
+    s->setNrImproveAttempts(55);
+    return ob::ValidStateSamplerPtr(s);
+}
+
 bool TaskSpaceRoadmap::isStateValid(const ob::State *state)
 {
     const ob::RealVectorStateSpace::StateType& coordinate = *state->as<ob::RealVectorStateSpace::StateType>();
     octomap::OcTreeNode* octree_node = octomap_->search((double)coordinate[0],(double)coordinate[1],(double)coordinate[2]);
+
     if (octree_node){
         if (!octomap_->isNodeOccupied(octree_node)){
             return true;
@@ -43,7 +51,7 @@ TaskSpaceRoadmap::TaskSpaceRoadmap()
     ROS_INFO("Initializing plannerglobal");
 
     // Octomap subscription
-    octomap_ = new octomap::OcTree(0.01);
+    octomap_ = new octomap::OcTree(0.05);
     octomap_sub  = n_.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &TaskSpaceRoadmap::octoMapCallback,this);
 
     // Construct space
@@ -105,7 +113,7 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     start[1] = start_pose.p.y();
     start[2] = start_pose.p.z();
 
-    ROS_WARN("ROADMAP: Start pos, x = %f, y = %f z = %f",start[0],start[1],start[2]);
+    //ROS_WARN("ROADMAP: Start pos, x = %f, y = %f z = %f",start[0],start[1],start[2]);
     if(!start.satisfiesBounds())
     {
         // DIRTY HACK (see SetBounds())
@@ -118,7 +126,7 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     goal[0] = goal_constraint.position_constraint.position.x;
     goal[1] = goal_constraint.position_constraint.position.y;
     goal[2] = goal_constraint.position_constraint.position.z;
-    ROS_WARN("ROADMAP: goal pos, x = %f, y = %f z = %f in %s",goal[0],goal[1],goal[2],goal_constraint.position_constraint.header.frame_id.c_str());
+   //ROS_WARN("ROADMAP: goal pos, x = %f, y = %f z = %f in %s",goal[0],goal[1],goal[2],goal_constraint.position_constraint.header.frame_id.c_str());
 
     simple_setup_->setStartAndGoalStates(start, goal);
 
@@ -141,6 +149,42 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
         ROS_WARN("No solution can be found!");
     }
     return solved;
+}
+
+bool TaskSpaceRoadmap::replan(const KDL::Frame& start_pose)
+{
+    constraints_.clear();
+    simple_setup_->clear();
+    simple_setup_->getSpaceInformation()->setValidStateSamplerAllocator(boost::bind(&TaskSpaceRoadmap::allocMaximizeClearanceStateSampler, this, _1));
+    // Set the start and goal states
+    ob::ScopedState<> start(simple_setup_->getStateSpace());
+
+    start[0] = start_pose.p.x();
+    start[1] = start_pose.p.y();
+    start[2] = start_pose.p.z();
+
+    simple_setup_->setStartState(start);
+
+    // Auto setup parameters
+    simple_setup_->setup();
+
+    // Solve
+    ob::PlannerStatus solved = simple_setup_->solve( 10.0 );
+
+    if (solved)
+    {
+        ROS_INFO("Solution found");
+        // Get information about the exploration data structure the motion planner used. Used later in visualizing
+        planner_data_.reset( new ob::PlannerData( simple_setup_->getSpaceInformation() ) );
+        simple_setup_->getPlannerData( *planner_data_ );
+        status = 1;
+    }
+    else
+    {
+        ROS_WARN("No solution can be found!");
+    }
+    return solved;
+
 }
 
 std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan()
@@ -199,17 +243,18 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
     // Hardcoded
     ob::RealVectorBounds bounds( DIMENSIONS );
 
+
     double x,y,z;
     // Set minimum bound
     octomap_->getMetricMin(x,y,z);
-    bounds.setLow(0,start_pose.p.x()-0.6); bounds.setLow(1,start_pose.p.y()-0.6); bounds.setLow(2,0.05);
-    ROS_INFO("Octomap minimum dimensions x= %f, y = %f, z= %f, planning dimensions x= %f, y = %f, z= %f", x,y,z,start_pose.p.x()-0.6,start_pose.p.y()-0.6,0.05 );
+    bounds.setLow(0,start_pose.p.x()-0.4); bounds.setLow(1,start_pose.p.y()-0.25); bounds.setLow(2,0.2);
+    //ROS_INFO("Octomap minimum dimensions x= %f, y = %f, z= %f, planning dimensions x= %f, y = %f, z= %f", x,y,z,start_pose.p.x()-0.4,start_pose.p.y()-0.4,0.05 );
 
 
     // Set maximum bound
     octomap_->getMetricMax(x,y,z);
-    bounds.setHigh(0,start_pose.p.x()+0.6); bounds.setHigh(1,start_pose.p.x()+0.6); bounds.setHigh(2,1.2);
-    ROS_INFO("Octomap maximum dimensions x = %f, y = %f, z = %f", x,y,z);
+    bounds.setHigh(0,start_pose.p.x()+0.5); bounds.setHigh(1,start_pose.p.y()+0.25); bounds.setHigh(2,1.05);
+    //ROS_INFO("Octomap maximum dimensions x = %f, y = %f, z = %f", x,y,z);
 
     space->as<ob::RealVectorStateSpace>()->setBounds( bounds );
 }
@@ -223,7 +268,7 @@ std::vector<std::vector<double> > TaskSpaceRoadmap::simplifyPlanToVector()
 }
 std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::simplifyPlan()
 {
-    simple_setup_->simplifySolution();
+    simple_setup_->simplifySolution(0.0001);
     std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_simplified;
     return constraints_simplified = convertSolutionToArmTaskGoal();
 }
