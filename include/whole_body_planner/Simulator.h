@@ -11,6 +11,8 @@
 #include <amigo_whole_body_controller/ArmTaskGoal.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+// Map
+#include <tue_map_3d/Map3D.h>
 
 class Simulator
 {
@@ -65,6 +67,10 @@ public:
 
     void transformToRoot(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints, const amigo_whole_body_controller::ArmTaskGoal& goal);
 
+    /** \brief Callback function for octomap */
+    void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
+
+    void loadParameterFiles(CollisionAvoidance::collisionAvoidanceParameters &ca_param);
 
 protected:
 
@@ -72,6 +78,7 @@ protected:
       * Whole body controller object for forward simulation
       */
     WholeBodyController* wbc_;
+    CollisionAvoidance* collision_avoidance_;
 
     /**
       * Desired joint positions

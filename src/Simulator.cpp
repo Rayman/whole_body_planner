@@ -13,6 +13,16 @@ Simulator::Simulator(const double Ts)
 void Simulator::initialize(const double Ts)
 {
     wbc_ = new WholeBodyController(Ts);
+    /*
+    CollisionAvoidance::collisionAvoidanceParameters ca_param;
+    loadParameterFiles(ca_param);
+
+    collision_avoidance_ = new CollisionAvoidance(ca_param, Ts);
+    if (!wbc_->addMotionObjective(collision_avoidance_)) {
+        ROS_ERROR("Could not initialize collision avoidance");
+        exit(-1);
+    }
+    */
     q_ref_.resize(wbc_->getJointNames().size());
     q_ref_.setZero();
     qdot_ref_.resize(wbc_->getJointNames().size());
@@ -25,13 +35,14 @@ Simulator::~Simulator()
 {
     marker_pub_.shutdown();
     delete wbc_;
+    delete collision_avoidance_;
 }
 
 bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints, const unsigned int& max_iter, int& error_index)
 {
 
     // Set stuff to zero and initialize
-    ROS_INFO("WBC-Simulator: Starting feasibility check");
+    //ROS_INFO("WBC-Simulator: Starting feasibility check");
     error_index = 0;
     path_.header.frame_id = constraints[0].position_constraint.header.frame_id;
     path_.poses.resize(0);
@@ -39,7 +50,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
 
     for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin(); it_constraints != constraints.end(); ++it_constraints)
     {
-        ROS_INFO("WBC-Simulator: Checking constraint %i for feasibility",error_index);
+        //ROS_INFO("WBC-Simulator: Checking constraint %i for feasibility",error_index);
         amigo_whole_body_controller::ArmTaskGoal constraint = *it_constraints;
         CartesianImpedance* cartesian_impedance = new CartesianImpedance(constraint.position_constraint.link_name);
 
@@ -58,7 +69,8 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
         goal_pose.header.frame_id = constraint.position_constraint.header.frame_id;
 
         cartesian_impedance->setGoal(goal_pose);
-        ROS_INFO("WBC-Simulator: Set goal.");
+        //ROS_INFO("WBC-Simulator: Set goal.");
+        //ROS_INFO("WBC-Simulator: Goal: %f %f %f %f %f %f",goal_pose.pose.position.x,goal_pose.pose.position.y,goal_pose.pose.position.z,goal_pose.pose.orientation.x,goal_pose.pose.orientation.y,goal_pose.pose.orientation.z);
         if (constraint.position_constraint.target_point_offset.x != 0.0 || constraint.position_constraint.target_point_offset.y != 0.0 || constraint.position_constraint.target_point_offset.z != 0.0)
         {
             ROS_INFO("WBC-Simulator: Setting cartesian pre-grasp position.");
@@ -72,7 +84,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
             ROS_ERROR("Could not initialize cartesian impedance for new motion objective");
             exit(-1);
         }
-        ROS_INFO("WBC-Simulator: Motion objective added to simulation");
+        //ROS_INFO("WBC-Simulator: Motion objective added to simulation");
 
         // Update the wbc until either the constraint is satisfied or the maximum number of iterations has been met        
         unsigned int iter = 0;
@@ -105,6 +117,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
         {
             ROS_INFO("Feasible joint-space trajectory found for constraint: %i",error_index);
             PublishMarkers(constraint,true);
+
             ++error_index;
         }
     }
@@ -237,3 +250,24 @@ void Simulator::transformToRoot(std::vector<amigo_whole_body_controller::ArmTask
     }
 
 }
+
+void Simulator::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg){
+    octomap::OcTree* octree = octomap_msgs::binaryMsgDataToMap(msg->data);
+    collision_avoidance_->setOctoMap(octree);
+
+}
+
+void Simulator::loadParameterFiles(CollisionAvoidance::collisionAvoidanceParameters &ca_param)
+{
+    ros::NodeHandle n("~");
+    std::string ns = ros::this_node::getName();
+    n.param<double> (ns+"/collision_avoidance/self_collision/F_max", ca_param.self_collision.f_max, 1.0);
+    n.param<double> (ns+"/collision_avoidance/self_collision/d_threshold", ca_param.self_collision.d_threshold, 1.0);
+    n.param<int> (ns+"/collision_avoidance/self_collision/order", ca_param.self_collision.order, 1);
+
+    n.param<double> (ns+"/collision_avoidance/environment_collision/F_max", ca_param.environment_collision.f_max, 1.0);
+    n.param<double> (ns+"/collision_avoidance/environment_collision/d_threshold", ca_param.environment_collision.d_threshold, 1.0);
+    n.param<int> (ns+"/collision_avoidance/environment_collision/order", ca_param.environment_collision.order, 1);
+    n.getParam("/map_3d/resolution", ca_param.environment_collision.octomap_resolution);
+}
+
