@@ -3,20 +3,17 @@
 Executer::Executer()
 {
 
-    ros::NodeHandle nh_private("~");
-
+	ros::NodeHandle nh_private("~");
     action_client_ = new actionlib::SimpleActionClient<amigo_whole_body_controller::ArmTaskAction>("/add_motion_objective", true);
     ROS_INFO("Waiting for whole body controller");
     action_client_->waitForServer();
     ROS_INFO("Connected to server, executer initialized");
-
 }
 
 Executer::~Executer()
 {
 
     delete action_client_;
-
 }
 
 bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoal> &constraints)
@@ -26,9 +23,19 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
     /// Send goals to the whole body controller
     for (unsigned int i = 0; i < constraints.size(); i++)
     {
-        //ROS_WARN("Tip frame = %s",constraints[i].position_constraint.link_name.c_str());
-        action_client_->sendGoal(constraints[i]);
-        action_client_->waitForResult(ros::Duration(5.0));
+        ros::Time start_time = ros::Time::now();
+        action_client_->sendGoalAndWait(constraints[i],ros::Duration(15.0));
+
+        if (action_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        {
+            ROS_INFO("Constraint %d is valid", i);
+        }
+        else
+        {
+            std::cout<<"Execution of constraint took: "<<ros::Time::now() - start_time<<std::endl;
+            break;
+        }
+
     }
 
     /// Check state
@@ -42,4 +49,6 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
         ROS_INFO("Arrived at goal!");
         return true;
     }
+
+    return true;
 }

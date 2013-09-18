@@ -121,7 +121,15 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
             }
             else if (planner_ == 2)
             {
-                ROS_WARN("Failure handling not implemented for plannerglobal");
+                constraints_.clear();
+                ROS_WARN("\n\n Replanning \n\n");
+                bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
+                if (plan_result){
+                    assignImpedance(goal);
+                    simulator_.transformToRoot(constraints_, goal);
+                    plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
+
+                }
             }
         }
 
@@ -135,6 +143,28 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     if (plan_feasible)
     {
         execute_result = executer_.Execute(constraints_);
+        if(!execute_result)
+        {
+            constraints_.clear();
+            ROS_WARN("\n\n Replanning \n\n");
+            /// Get the current position of the robot
+            /// Set initial state simulator (setInitialJointConfiguration)
+            simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
+            planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
+            bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
+            if (plan_result){
+                assignImpedance(goal);
+                simulator_.transformToRoot(constraints_, goal);
+                int error_index;
+                plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
+                if(plan_feasible)
+                {
+                     execute_result = executer_.Execute(constraints_);
+                }
+
+            }
+
+        }
         execute_result = true;
         //ROS_WARN("Computed path is feasible, but Execution disabled!!!");
     }

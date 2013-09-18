@@ -34,6 +34,8 @@ public:
 
 protected:
 
+private:
+
     actionlib::SimpleActionClient<amigo_whole_body_controller::ArmTaskAction>* action_client_;
 
 };
