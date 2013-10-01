@@ -38,6 +38,8 @@ public:
       */
     void setStartPose(KDL::Frame startPose);
 
+    void setBasePose(KDL::Frame base_pose);
+
     /**
       *
       */
@@ -64,6 +66,7 @@ protected:
       *
       */
     KDL::Frame start_pose_;
+    KDL::Frame base_pose_;
 
 };
 

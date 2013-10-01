@@ -30,7 +30,6 @@ WholeBodyPlanner::WholeBodyPlanner()
 
     // ToDo: don't hardcode
     simulator_.initialize(0.02);
-
 }
 
 WholeBodyPlanner::~WholeBodyPlanner()
@@ -70,6 +69,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     {
         /// Set the initial pose of the goal frame in map frame
         planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
+        planner_global_.setBasePose(simulator_.getFramePose(goal.position_constraint.header.frame_id));
 
         /// Accordingly transform the goal pose of the goal frame from root to map frame
         KDL::Frame Frame_map_goal = simulator_.transformToMap(goal);
@@ -145,23 +145,25 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         execute_result = executer_.Execute(constraints_);
         if(!execute_result)
         {
-            constraints_.clear();
-            ROS_WARN("\n\n Replanning \n\n");
-            /// Get the current position of the robot
-            /// Set initial state simulator (setInitialJointConfiguration)
-            simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
-            planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
-            bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
-            if (plan_result){
-                assignImpedance(goal);
-                simulator_.transformToRoot(constraints_, goal);
-                int error_index;
-                plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
-                if(plan_feasible)
-                {
-                     execute_result = executer_.Execute(constraints_);
-                }
+            if (planner_ == 2){
+                constraints_.clear();
+                ROS_WARN("\n\n Replanning \n\n");
+                /// Get the current position of the robot
+                /// Set initial state simulator (setInitialJointConfiguration)
+                simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
+                planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
+                bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
+                if (plan_result){
+                    assignImpedance(goal);
+                    simulator_.transformToRoot(constraints_, goal);
+                    int error_index;
+                    plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
+                    if(plan_feasible)
+                    {
+                         execute_result = executer_.Execute(constraints_);
+                    }
 
+                }
             }
 
         }

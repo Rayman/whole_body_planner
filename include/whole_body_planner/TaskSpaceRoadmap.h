@@ -54,7 +54,7 @@ public:
     virtual ~TaskSpaceRoadmap();
 
     /** \brief Initial planning */
-    bool plan(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, const KDL::Frame& start_pose);
+    bool plan(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, const KDL::Frame& start_pose, const KDL::Frame& base_pose);
 
     /** \brief Return planning result */
     std::vector<amigo_whole_body_controller::ArmTaskGoal>& getPlan();
@@ -102,7 +102,7 @@ public:
     unsigned int deleteMilestone( const std::vector<double> coordinate );
 
     /** \brief Octomap instance */
-    octomap::OcTree* octomap_;
+    octomap::OcTreeStamped* octomap_;
 
     /** \brief Get the planned data */
     ompl::base::PlannerDataPtr getPlanData()
@@ -119,7 +119,7 @@ public:
     ompl::base::StateSpacePtr constructSpace(const unsigned int dimension = 3);
 
     /** \brief Set the bounds */
-    void setBounds(ompl::base::StateSpacePtr space, const KDL::Frame &start_pose);
+    void setBounds(ompl::base::StateSpacePtr space, const KDL::Frame& start_pose, const KDL::Frame& base_pose);
 
 protected:
 
@@ -157,6 +157,12 @@ private:
     /** \brief  Goal constraint received from planner class */
     amigo_whole_body_controller::ArmTaskGoal goal_constraint_;
 
+    double solution_time;
+    double validity_checking_resolution;
+    double octomap_resolution;
+    double simplification_time;
+    int clearance_attempts;
+
     /** \brief  Status of the planner:
     0 = No path
     1 = Initial feasible plan
@@ -166,7 +172,7 @@ private:
 
     // FUNCTIONS
     /** \brief Callback function for octomap */
-    void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
+    void octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg);
 
     /** \brief Set tags, to states which are in solution */
     void setTags(og::PathGeometric path);

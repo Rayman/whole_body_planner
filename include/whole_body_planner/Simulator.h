@@ -68,7 +68,7 @@ public:
     void transformToRoot(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints, const amigo_whole_body_controller::ArmTaskGoal& goal);
 
     /** \brief Callback function for octomap */
-    void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
+    void octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg);
 
     void loadParameterFiles(CollisionAvoidance::collisionAvoidanceParameters &ca_param);
 

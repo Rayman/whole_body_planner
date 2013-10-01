@@ -20,6 +20,7 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
 {
     ROS_WARN("No timeouts defined yet");
 
+
     /// Send goals to the whole body controller
     for (unsigned int i = 0; i < constraints.size(); i++)
     {

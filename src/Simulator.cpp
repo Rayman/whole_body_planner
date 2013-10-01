@@ -13,7 +13,7 @@ Simulator::Simulator(const double Ts)
 void Simulator::initialize(const double Ts)
 {
     wbc_ = new WholeBodyController(Ts);
-    /*
+
     CollisionAvoidance::collisionAvoidanceParameters ca_param;
     loadParameterFiles(ca_param);
 
@@ -22,7 +22,7 @@ void Simulator::initialize(const double Ts)
         ROS_ERROR("Could not initialize collision avoidance");
         exit(-1);
     }
-    */
+
     q_ref_.resize(wbc_->getJointNames().size());
     q_ref_.setZero();
     qdot_ref_.resize(wbc_->getJointNames().size());
@@ -167,6 +167,7 @@ void Simulator::PublishMarkers( const amigo_whole_body_controller::ArmTaskGoal& 
 {
     visualization_msgs::Marker marker;
     marker.header = constraint.position_constraint.header;
+    marker.header.frame_id = "/amigo/base_link";
     marker.header.stamp = ros::Time();
     marker.lifetime = ros::Duration(15.0);
     marker.ns = "forward_sim";
@@ -174,9 +175,9 @@ void Simulator::PublishMarkers( const amigo_whole_body_controller::ArmTaskGoal& 
     marker.type = visualization_msgs::Marker::ARROW;
     static int id_sim = 0;
     marker.id = id_sim++;
-    marker.scale.x = 1;
-    marker.scale.y = 1;
-    marker.scale.z = 0.2;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.05;
     marker.pose.position = constraint.position_constraint.position;
     marker.pose.orientation = constraint.orientation_constraint.orientation;
     marker.color.a = 0.3;
@@ -251,10 +252,22 @@ void Simulator::transformToRoot(std::vector<amigo_whole_body_controller::ArmTask
 
 }
 
-void Simulator::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg){
-    octomap::OcTree* octree = octomap_msgs::binaryMsgDataToMap(msg->data);
-    collision_avoidance_->setOctoMap(octree);
-
+void Simulator::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
+{
+    octomap::AbstractOcTree* tree = octomap_msgs::msgToMap(*msg);
+    if(tree){
+        octomap::OcTreeStamped* octree = dynamic_cast<octomap::OcTreeStamped*>(tree);
+        if(!octree){
+            ROS_ERROR("No Octomap created");
+        }
+        else{
+            collision_avoidance_->setOctoMap(octree);
+        }
+    }
+    else{
+        ROS_ERROR("Octomap conversion error");
+        exit(1);
+    }
 }
 
 void Simulator::loadParameterFiles(CollisionAvoidance::collisionAvoidanceParameters &ca_param)
@@ -269,5 +282,6 @@ void Simulator::loadParameterFiles(CollisionAvoidance::collisionAvoidanceParamet
     n.param<double> (ns+"/collision_avoidance/environment_collision/d_threshold", ca_param.environment_collision.d_threshold, 1.0);
     n.param<int> (ns+"/collision_avoidance/environment_collision/order", ca_param.environment_collision.order, 1);
     n.getParam("/map_3d/resolution", ca_param.environment_collision.octomap_resolution);
+    std::cout<<ca_param.self_collision.f_max<<ca_param.self_collision.d_threshold<<ca_param.environment_collision.f_max<<ca_param.environment_collision.d_threshold<<std::endl;
 }
 

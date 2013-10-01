@@ -9,9 +9,9 @@ RobotStateInterface::RobotStateInterface()
 
     // ToDo: make nice
     sub_base_ = nh_private.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, &RobotStateInterface::baseMeasurementCallback, this);
-    sub_torso_ = nh_private.subscribe<sensor_msgs::JointState>("/torso_controller/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
-    sub_left_arm_ = nh_private.subscribe<sensor_msgs::JointState>("/arm_left_controller/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
-    sub_right_arm_ = nh_private.subscribe<sensor_msgs::JointState>("/arm_right_controller/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
+    sub_torso_ = nh_private.subscribe<sensor_msgs::JointState>("/amigo/torso/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
+    sub_left_arm_ = nh_private.subscribe<sensor_msgs::JointState>("/amigo/left_arm/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
+    sub_right_arm_ = nh_private.subscribe<sensor_msgs::JointState>("/amigo/right_arm/measurements", 10, &RobotStateInterface::jointMeasurementCallback, this);
     sub_head_pan_ = nh_private.subscribe<std_msgs::Float64>("/head_pan_angle", 10, &RobotStateInterface::headPanMeasurementCallback, this);
     sub_head_tilt_ = nh_private.subscribe<std_msgs::Float64>("/head_tilt_angle", 10, &RobotStateInterface::headTiltMeasurementCallback, this);
 
@@ -61,9 +61,9 @@ void RobotStateInterface::headTiltMeasurementCallback(const std_msgs::Float64::C
 void RobotStateInterface::initializeAmclPose()
 {
     tf::TransformListener listener;
-    listener.waitForTransform("/map","/base_link",ros::Time(0),ros::Duration(1.0)); // Is the latest available transform
+    listener.waitForTransform("/map","/amigo/base_link",ros::Time(0),ros::Duration(1.0)); // Is the latest available transform
     geometry_msgs::PoseStamped base_link_pose, map_pose;
-    base_link_pose.header.frame_id = "/base_link";
+    base_link_pose.header.frame_id = "/amigo/base_link";
     base_link_pose.pose.position.x = 0.0;
     base_link_pose.pose.position.y = 0.0;
     base_link_pose.pose.position.z = 0.0;

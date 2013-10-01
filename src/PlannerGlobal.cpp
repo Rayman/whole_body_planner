@@ -19,10 +19,15 @@ void PlannerGlobal::setStartPose(KDL::Frame start_pose)
     start_pose_ = start_pose;
 }
 
+void PlannerGlobal::setBasePose(KDL::Frame base_pose)
+{
+    base_pose_ = base_pose;
+}
+
 bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
     /// Create roadmap and find global path
-    if(!task_space_roadmap_->plan(goal_constraint, start_pose_)){
+    if(!task_space_roadmap_->plan(goal_constraint, start_pose_, base_pose_)){
         ROS_INFO("NO PLAN!");
         return false;
     }

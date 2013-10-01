@@ -40,6 +40,8 @@ public:
 
 protected:
 
+    amigo_whole_body_controller::ArmTaskGoal default_constraint_;
+
     /**
       * Vector containing the list of constraints that is computed by the planner and is sent to the robot
       */

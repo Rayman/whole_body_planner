@@ -24,7 +24,7 @@ ob::ValidStateSamplerPtr TaskSpaceRoadmap::allocValidStateSampler(const ob::Spac
 ob::ValidStateSamplerPtr TaskSpaceRoadmap::allocMaximizeClearanceStateSampler(const ob::SpaceInformation *si)
 {
     ob::MaximizeClearanceValidStateSampler *s = new ob::MaximizeClearanceValidStateSampler(si);
-    s->setNrImproveAttempts(55);
+    s->setNrImproveAttempts(clearance_attempts);
     return ob::ValidStateSamplerPtr(s);
 }
 
@@ -45,14 +45,21 @@ bool TaskSpaceRoadmap::isStateValid(const ob::State *state)
     return true;
 }
 
-TaskSpaceRoadmap::TaskSpaceRoadmap()
+TaskSpaceRoadmap::TaskSpaceRoadmap() : octomap_(NULL)
 {
     //ROS_INFO_STREAM( "OMPL version: " << OMPL_VERSION );
     ROS_INFO("Initializing plannerglobal");
 
+    // Load parameters
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/validity_checking_resolution", validity_checking_resolution, 0.005);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/solution_time", solution_time, 1);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/simplification_time", simplification_time, 0.001);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/octomap_resolution", octomap_resolution, 0.05);
+    n_.param<int> ("/whole_body_planner/task_space_roadmap/clearance_attempts", clearance_attempts, 10);
+
     // Octomap subscription
-    octomap_ = new octomap::OcTree(0.05);
-    octomap_sub  = n_.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &TaskSpaceRoadmap::octoMapCallback,this);
+    octomap_ = new octomap::OcTreeStamped(octomap_resolution);
+    octomap_sub  = n_.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &TaskSpaceRoadmap::octoMapCallback, this);
 
     // Construct space
     ob::StateSpacePtr space = constructSpace();
@@ -71,8 +78,8 @@ TaskSpaceRoadmap::TaskSpaceRoadmap()
     // Set Validiy checking
     simple_setup_->setStateValidityChecker(boost::bind(&TaskSpaceRoadmap::isStateValid, this, _1));
 
-    // The interval in which obstacles are checked for between states ( trade-off speed // accuracy )
-    simple_setup_->getSpaceInformation()->setStateValidityCheckingResolution(0.005); //0.005
+    // The interval in which obstacles are checked for between states
+    simple_setup_->getSpaceInformation()->setStateValidityCheckingResolution(validity_checking_resolution); //0.005
     ROS_INFO("Initialized plannerglobal");
 
 }
@@ -84,7 +91,7 @@ TaskSpaceRoadmap::~TaskSpaceRoadmap()
     delete octomap_;
 }
 
-bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal_constraint, const KDL::Frame &start_pose)
+bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal_constraint, const KDL::Frame &start_pose, const KDL::Frame &base_pose)
 {
     // Reset constraints
     constraints_.clear();
@@ -95,7 +102,7 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     ROS_INFO("Creating roadmap");
 
     // Set the bounds
-    setBounds(simple_setup_->getStateSpace(), start_pose);
+    setBounds(simple_setup_->getStateSpace(), start_pose, base_pose);
 
     if (!prm->milestoneCount()==0)
     {
@@ -113,7 +120,6 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     start[1] = start_pose.p.y();
     start[2] = start_pose.p.z();
 
-    //ROS_WARN("ROADMAP: Start pos, x = %f, y = %f z = %f",start[0],start[1],start[2]);
     if(!start.satisfiesBounds())
     {
         // DIRTY HACK (see SetBounds())
@@ -126,7 +132,6 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     goal[0] = goal_constraint.position_constraint.position.x;
     goal[1] = goal_constraint.position_constraint.position.y;
     goal[2] = goal_constraint.position_constraint.position.z;
-   //ROS_WARN("ROADMAP: goal pos, x = %f, y = %f z = %f in %s",goal[0],goal[1],goal[2],goal_constraint.position_constraint.header.frame_id.c_str());
 
     simple_setup_->setStartAndGoalStates(start, goal);
 
@@ -134,7 +139,7 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
     simple_setup_->setup();
 
     // Solve
-    ob::PlannerStatus solved = simple_setup_->solve( 10.0 );
+    ob::PlannerStatus solved = simple_setup_->solve( solution_time );
 
     if (solved)
     {
@@ -169,7 +174,7 @@ bool TaskSpaceRoadmap::replan(const KDL::Frame& start_pose)
     simple_setup_->setup();
 
     // Solve
-    ob::PlannerStatus solved = simple_setup_->solve( 10.0 );
+    ob::PlannerStatus solved = simple_setup_->solve( solution_time );
 
     if (solved)
     {
@@ -216,14 +221,6 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan
         constraint.position_constraint.position.y = real_state->values[1];
         constraint.position_constraint.position.z = real_state->values[2];
 
-        // Add Stiffness
-
-        // Add Constraint Region
-
-        // Add Tolerances
-
-        // Add to constraint vector
-
         // ToDo nice way to find goal and add orientation constraint
         constraints_.push_back(constraint);
     }
@@ -233,42 +230,99 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan
 ob::StateSpacePtr TaskSpaceRoadmap::constructSpace(const unsigned int dimension)
 {
     ROS_INFO("plannerglobal plans in %d dimension space, STILL HARDCODED", dimension);
+    // Construct the SE3 space to set bounds of the planning domain, but only actually plan in R^3
+    ob::StateSpacePtr se3_space( new ob::SE3StateSpace());
+
+
     ob::StateSpacePtr space( new ob::RealVectorStateSpace( DIMENSIONS ));
     return space;
 }
-void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& start_pose)
+void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& start_pose, const KDL::Frame& base_pose)
 {
-    // Set the bounds for the R^3 now completely dependent on octomap dimensions
-    // Problem: when arm is behind kinect, then always outside bounds! and area is TOO big for most planning problems
-    // Hardcoded
     ob::RealVectorBounds bounds( DIMENSIONS );
+    // Load parameters for planning w.r.t. root frame
+    double x, x_min, x_max, y, y_min, y_max, z, z_min, z_max;
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/x_max", x_max, 0.8);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/y_max", y_max, 0.8);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/z_max", z_max, 1.25);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/x_min", x_min, 0.0);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/y_min", y_min, 0.0);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/z_min", z_min, 0.05);
 
+    // Check if planning for right or left arm
+    if (goal_constraint_.position_constraint.link_name.find("right")!= std::string::npos){
+        y_max = -y_max; y_min = -y_min;
+    }
 
-    double x,y,z;
-    // Set minimum bound
-    octomap_->getMetricMin(x,y,z);
-    bounds.setLow(0,start_pose.p.x()-0.4); bounds.setLow(1,start_pose.p.y()-0.25); bounds.setLow(2,0.2);
-    //ROS_INFO("Octomap minimum dimensions x= %f, y = %f, z= %f, planning dimensions x= %f, y = %f, z= %f", x,y,z,start_pose.p.x()-0.4,start_pose.p.y()-0.4,0.05 );
+    if (octomap_->size() > 0){
+        //Mininimum
+        octomap_->getMetricMin(x,y,z);
+        ROS_INFO("Octomap minimum dimension in map frame (xyz): %f %f %f", x, y, z);
+        if (x > base_pose.p.x()-x_min){
+            bounds.setLow(0,x);
+        }
+        else {
+            bounds.setLow(0,base_pose.p.x()-x_min);
+        }
+        if (y > base_pose.p.y()-y_min){
+            bounds.setLow(1,y);
+        }
+        else{
+            bounds.setLow(1,base_pose.p.y()-y_min);
+        }
+        if (z > z_min){
+            bounds.setLow(2,z);
+        }
+        else{
+            bounds.setLow(2,z_min);
+        }
 
+        //Maximum
+        octomap_->getMetricMax(x,y,z);
+        ROS_INFO("Octomap maximum dimension in map frame (xyz): %f %f %f", x, y, z);
+        if (x < base_pose.p.x()+x_max){
+            bounds.setHigh(0,x);
+        }
+        else{
+            bounds.setHigh(0,base_pose.p.x()+x_max);
+        }
+        if (y < base_pose.p.y()+y_max){
+            bounds.setHigh(1,y);
+        }
+        else{
+            bounds.setHigh(1,base_pose.p.y()+y_max);
+        }
+        if (z < z_max){
+            bounds.setHigh(2,z);
+        }
+        else{
+            bounds.setHigh(2,z_max);
+        }
+    }
+    else {
+        ROS_WARN("Octomap has not been loaded, every sample is considered valid!");
+        bounds.setLow(0,base_pose.p.x()-x_min);
+        bounds.setLow(1,base_pose.p.y()-y_min);
+        bounds.setLow(2,z_min);
+        bounds.setHigh(0,base_pose.p.x()+x_max);
+        bounds.setHigh(1,base_pose.p.y()+y_max);
+        bounds.setHigh(2,z_max);
+    }
 
-    // Set maximum bound
-    octomap_->getMetricMax(x,y,z);
-    bounds.setHigh(0,start_pose.p.x()+0.5); bounds.setHigh(1,start_pose.p.y()+0.25); bounds.setHigh(2,1.05);
-    //ROS_INFO("Octomap maximum dimensions x = %f, y = %f, z = %f", x,y,z);
-
+    // Set bounds
     space->as<ob::RealVectorStateSpace>()->setBounds( bounds );
 }
 
 
 std::vector<std::vector<double> > TaskSpaceRoadmap::simplifyPlanToVector()
 {
-    simple_setup_->simplifySolution();
+    simple_setup_->simplifySolution(simplification_time);
     std::vector<std::vector<double> > coordinates;
     return coordinates = convertSolutionToVector();
 }
 std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::simplifyPlan()
 {
-    simple_setup_->simplifySolution(0.0001);
+    simple_setup_->simplifySolution(simplification_time);
     std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_simplified;
     return constraints_simplified = convertSolutionToArmTaskGoal();
 }
@@ -369,9 +423,22 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::convertS
 /////////////////////////
 ////     Private     ////
 /////////////////////////
-void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
+
+void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
 {
-    octomap_ = octomap_msgs::binaryMsgDataToMap(msg->data);
+    delete octomap_;
+    octomap::AbstractOcTree* tree = octomap_msgs::msgToMap(*msg);
+    if(tree){
+        octomap_ = dynamic_cast<octomap::OcTreeStamped*>(tree);
+        if(!octomap_)
+        {
+            ROS_ERROR("No Octomap created");
+        }
+    }
+    else{
+        ROS_ERROR("Octomap conversion error");
+        exit(1);
+    }
 }
 
 void TaskSpaceRoadmap::setTags(og::PathGeometric path)

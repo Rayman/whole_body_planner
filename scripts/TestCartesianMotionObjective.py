@@ -62,9 +62,9 @@ if __name__ == '__main__':
     goal.stiffness.force.x = 100.0
     goal.stiffness.force.y = 100.0
     goal.stiffness.force.z = 100.0
-    goal.stiffness.torque.x = 1.0
-    goal.stiffness.torque.y = 1.0
-    goal.stiffness.torque.z = 1.0
+    goal.stiffness.torque.x = 11.0
+    goal.stiffness.torque.y = 11.0
+    goal.stiffness.torque.z = 11.0
     
     rospy.loginfo(goal)
     
