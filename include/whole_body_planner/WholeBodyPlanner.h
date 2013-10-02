@@ -100,7 +100,7 @@ protected:
       * Interface to robot hardware
       * Receives joint positions
       */
-    RobotStateInterface robot_state_interface_;
+    RobotStateInterface* robot_state_interface_;
 
     /// Marker + trajectory publisher
     /**

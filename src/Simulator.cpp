@@ -2,7 +2,7 @@
 
 Simulator::Simulator()
 {
-
+    octomap_sub = n_.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &Simulator::octoMapCallback, this);
 }
 
 Simulator::Simulator(const double Ts)
@@ -23,12 +23,15 @@ void Simulator::initialize(const double Ts)
         exit(-1);
     }
 
+
+
     q_ref_.resize(wbc_->getJointNames().size());
     q_ref_.setZero();
     qdot_ref_.resize(wbc_->getJointNames().size());
     qdot_ref_.setZero();
     joint_name_to_index_ = wbc_->getJointNameToIndex();
     marker_pub_ = n_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+
 }
 
 Simulator::~Simulator()
@@ -75,7 +78,6 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
         {
             ROS_INFO("WBC-Simulator: Setting cartesian pre-grasp position.");
             cartesian_impedance->setGoalOffset(constraint.position_constraint.target_point_offset);
-
         }
         cartesian_impedance->setImpedance(constraint.stiffness);
         cartesian_impedance->setPositionTolerance(constraint.position_constraint.constraint_region_shape);

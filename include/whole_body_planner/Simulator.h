@@ -79,6 +79,7 @@ protected:
       */
     WholeBodyController* wbc_;
     CollisionAvoidance* collision_avoidance_;
+    ros::Subscriber octomap_sub;
 
     /**
       * Desired joint positions

@@ -30,11 +30,12 @@ WholeBodyPlanner::WholeBodyPlanner()
 
     // ToDo: don't hardcode
     simulator_.initialize(0.02);
+    robot_state_interface_ = new RobotStateInterface();
 }
 
 WholeBodyPlanner::~WholeBodyPlanner()
 {
-
+    delete robot_state_interface_;
     delete action_server_;
     action_server_ = NULL;
     delete action_server_old_left_;
@@ -47,10 +48,10 @@ WholeBodyPlanner::~WholeBodyPlanner()
 bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTaskGoal &goal)
 {
     /// Get initial positions from robot interface
-    std::map<std::string, double> joint_position_map = robot_state_interface_.getJointPositions();
+    //std::map<std::string, double> joint_position_map = robot_state_interface_.getJointPositions();
 
     /// Set initial state simulator (setInitialJointConfiguration)
-    simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
+    simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
 
 
 
@@ -122,7 +123,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
             else if (planner_ == 2)
             {
                 constraints_.clear();
-                ROS_WARN("\n\n Replanning \n\n");
+                ROS_WARN("Replanning, with maximum clearance");
                 bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
                 if (plan_result){
                     assignImpedance(goal);
@@ -147,10 +148,18 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         {
             if (planner_ == 2){
                 constraints_.clear();
-                ROS_WARN("\n\n Replanning \n\n");
+                ROS_WARN("Replanning, resetting virtual WBC");
                 /// Get the current position of the robot
                 /// Set initial state simulator (setInitialJointConfiguration)
-                simulator_.setInitialJointConfiguration(robot_state_interface_.getJointPositions(), robot_state_interface_.getAmclPose());
+                delete robot_state_interface_;
+                robot_state_interface_ = new RobotStateInterface();
+                while (robot_state_interface_->getJointPositions().empty())
+                {
+                    ROS_WARN_ONCE("Waiting for measurement..");
+                    ros::spinOnce();
+                }
+
+                simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
                 planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
                 bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
                 if (plan_result){
@@ -167,7 +176,6 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
             }
 
         }
-        execute_result = true;
         //ROS_WARN("Computed path is feasible, but Execution disabled!!!");
     }
     return execute_result;
@@ -212,7 +220,8 @@ void WholeBodyPlanner::goalCBOldLeft()
     goal.position_constraint.link_name = "grippoint_left";
     goal.orientation_constraint.link_name = "grippoint_left";
 
-    if(goal.position_constraint.header.frame_id == "/base_link") goal.position_constraint.header.frame_id = "base_link";
+    //// HARDCODED FIX!!!
+    if(goal.position_constraint.header.frame_id == "/amigo/base_link") goal.position_constraint.header.frame_id = "base_link";
 
     /// Plan, simulate and execute
     ROS_INFO("Plan, simulate, execute");
@@ -255,6 +264,9 @@ void WholeBodyPlanner::goalCBOldRight()
     /// Set link names
     goal.position_constraint.link_name = "grippoint_right";
     goal.orientation_constraint.link_name = "grippoint_right";
+
+    //// HARDCODED FIX!!!
+    if(goal.position_constraint.header.frame_id == "/amigo/base_link") goal.position_constraint.header.frame_id = "base_link";
 
     /// Plan, simulate and execute
     ROS_INFO("Plan, simulate, execute");
@@ -333,9 +345,9 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
         ros::Time stamp = ros::Time(0);
         try
         {
-            listener_.waitForTransform("/base_link", point_in.header.frame_id,stamp,ros::Duration(1.0));
-            listener_.transformPoint("/base_link", stamp, point_in, point_in.header.frame_id, point_out);
-            listener_.transformQuaternion("/base_link", stamp ,quat_in, quat_in.header.frame_id, quat_out);
+            listener_.waitForTransform("/amigo/base_link", point_in.header.frame_id,stamp,ros::Duration(1.0));
+            listener_.transformPoint("/amigo/base_link", stamp, point_in, point_in.header.frame_id, point_out);
+            listener_.transformQuaternion("/amigo/base_link", stamp ,quat_in, quat_in.header.frame_id, quat_out);
         }
         catch (tf::TransformException ex)
         {
