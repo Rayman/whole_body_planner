@@ -1,0 +1,47 @@
+task_space_roadmap:
+    dimension: 3
+    planning_domain:
+        x_min: -0.1
+        x_max: 0.6
+        y_min: 0.0
+        y_max: 0.6
+        z_min: 0.2
+        z_max: 1.25
+    solution_time: 0.5
+    simplification_time: 0.0001
+    validity_checking_resolution: 0.005
+    octomap_resolution: 0.05
+    clearance_attempts: 50
+
+joint_space_feasibility:
+    iterations: 250
+    collision_avoidance: 1
+
+execution:
+    execution_time_max: 15
+
+default_goal_constraint:
+    position:
+        stiffness: 100
+        constraint_dimension: 0.035
+    orientation:
+        stiffness: 10
+        constraint:
+            absolute_roll_tolerance: 30
+            absolute_pitch_tolerance: 30
+            absolute_yaw_tolerance: 30
+
+intermediate_constraints:
+    position:
+        stiffness: 100
+        constraint:
+            region_shape: Sphere
+            dimension: 0.08
+    orientation:
+        stiffness: 10
+        constraint:
+            absolute_roll_tolerance: 45
+            absolute_pitch_tolerance: 45
+            absolute_yaw_tolerance: 45
+
+
