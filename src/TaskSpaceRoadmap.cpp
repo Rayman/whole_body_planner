@@ -59,7 +59,13 @@ TaskSpaceRoadmap::TaskSpaceRoadmap() : octomap_(NULL)
 
     // Octomap subscription
     octomap_ = new octomap::OcTreeStamped(octomap_resolution);
+#if ROS_VERSION_MINIMUM(1,9,0)
+    // Groovy
     octomap_sub  = n_.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &TaskSpaceRoadmap::octoMapCallback, this);
+#elif ROS_VERSION_MINIMUM(1,8,0)
+    // Fuerte
+    octomap_sub  = n_.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &TaskSpaceRoadmap::octoMapCallback, this);
+#endif
 
     // Construct space
     ob::StateSpacePtr space = constructSpace();
@@ -424,6 +430,8 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::convertS
 ////     Private     ////
 /////////////////////////
 
+#if ROS_VERSION_MINIMUM(1,9,0)
+// Groovy
 void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
 {
     delete octomap_;
@@ -440,6 +448,25 @@ void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& ms
         exit(1);
     }
 }
+#elif ROS_VERSION_MINIMUM(1,8,0)
+// Fuerte
+void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
+{
+    delete octomap_;
+    octomap::OcTree* tree = octomap_msgs::binaryMsgDataToMap(msg->data);
+    if(tree){
+        octomap_ = dynamic_cast<octomap::OcTreeStamped*>(tree);
+        if(!octomap_)
+        {
+            ROS_ERROR("No Octomap created");
+        }
+    }
+    else{
+        ROS_ERROR("Octomap conversion error");
+        exit(1);
+    }
+}
+#endif
 
 void TaskSpaceRoadmap::setTags(og::PathGeometric path)
 {
