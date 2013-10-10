@@ -5,6 +5,7 @@ WholeBodyPlanner::WholeBodyPlanner()
 
     ROS_INFO("Initializing whole body planner");
     ros::NodeHandle nh_private("~");
+    ros::NodeHandle nh;
 
     /// Action servers
     action_server_ = new actionlib::SimpleActionServer<amigo_whole_body_controller::ArmTaskAction>(nh_private, "motion_constraint", false);

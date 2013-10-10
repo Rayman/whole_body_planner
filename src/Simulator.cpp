@@ -140,7 +140,7 @@ bool Simulator::setInitialJointConfiguration(const std::map<std::string,double>&
     /// Set joint configuration
     for(std::map<std::string, double>::const_iterator iter = joint_positions.begin(); iter != joint_positions.end(); ++iter)
     {
-        ROS_INFO("%s = %f",iter->first.c_str(),iter->second);
+        ROS_DEBUG("%s = %f",iter->first.c_str(),iter->second);
         wbc_->setMeasuredJointPosition(iter->first, iter->second);
     }
     /// Set amcl pose

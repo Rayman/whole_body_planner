@@ -313,10 +313,10 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& Graph::getPlan(const std:
     /// Iterate until endnode has been visited
     while (!findNodeByName(endPosition)->getStatus() == VISITED)
     {
-        ROS_INFO("Current node = %s, cost = %i, endPositionVisited = %d",currentNode->getName().c_str(),currentNode->getTentativeCost(),!findNodeByName(endPosition)->getStatus() == VISITED);
+        ROS_DEBUG("Current node = %s, cost = %i, endPositionVisited = %d",currentNode->getName().c_str(),currentNode->getTentativeCost(),!findNodeByName(endPosition)->getStatus() == VISITED);
         for (unsigned int i = 0; i < unvisitedNodeList.size(); i++)
         {
-            ROS_INFO("Costs of node %s = %i",unvisitedNodeList[i]->getName().c_str(),unvisitedNodeList[i]->getTentativeCost());
+            ROS_DEBUG("Costs of node %s = %i",unvisitedNodeList[i]->getName().c_str(),unvisitedNodeList[i]->getTentativeCost());
         }
 
         /// Get vector with adjacent edges
@@ -328,7 +328,7 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& Graph::getPlan(const std:
             /// Only consider nodes that have not yet been visited
             if (adjNodelist[i].getDstNode()->getStatus() != VISITED)
             {
-                ROS_INFO("Adjacent node = %s",adjNodelist[i].getDstNode()->getName().c_str());
+                ROS_DEBUG("Adjacent node = %s",adjNodelist[i].getDstNode()->getName().c_str());
 
                 /// If the costs of the current node + edge to next node are smaller than the tentative cost of that node, update the tentative cost
                 if ( (currentNode->getTentativeCost() + adjNodelist[i].getCost()) < adjNodelist[i].getDstNode()->getTentativeCost())
