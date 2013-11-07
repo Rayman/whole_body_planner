@@ -24,9 +24,11 @@ WholeBodyPlanner::WholeBodyPlanner()
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 1);
     trajectory_pub_   = nh_private.advertise<nav_msgs::Path>("/whole_body_planner/trajectory", 1);
 
+    /// Load parameters
     int planner;
     nh_private.param("planner_type", planner, 0);
     planner_ = planner;
+    nh_private.param<int> ("/whole_body_planner/joint_space_feasibility/iterations", max_iterations_, 1000);
     ROS_INFO("Planner type = %i",planner_);
 
     // ToDo: don't hardcode
@@ -68,6 +70,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     }
     else if (planner_ == 2)
     {
+
         /// Set the initial pose of the goal frame in map frame
         planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
         planner_global_.setBasePose(simulator_.getFramePose(goal.position_constraint.header.frame_id));
@@ -107,7 +110,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
         // ToDo: Don't hardcode max_iter
-        plan_feasible = simulator_.checkFeasibility(constraints_, 1000, error_index);
+        plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
         ROS_INFO("Checked feasibility, error_index = %i", error_index);
 
         /// Failure handling
@@ -127,8 +130,11 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
                 bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
                 if (plan_result){
                     assignImpedance(goal);
+
+                    // Reset the virtual WBC
+                    simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
                     simulator_.transformToRoot(constraints_, goal);
-                    plan_feasible = simulator_.checkFeasibility(constraints_, 1000, error_index);
+                    plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
 
                 }
             }
@@ -140,7 +146,9 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     }
 
     /// If succeeded, send to whole body controller
+
     bool execute_result = false;
+
     if (plan_feasible)
     {
         execute_result = executer_.Execute(constraints_);
@@ -149,16 +157,17 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
             if (planner_ == 2){
                 constraints_.clear();
                 ROS_WARN("Replanning, resetting virtual WBC");
+
                 /// Get the current position of the robot
-                /// Set initial state simulator (setInitialJointConfiguration)
                 delete robot_state_interface_;
                 robot_state_interface_ = new RobotStateInterface();
                 while (robot_state_interface_->getJointPositions().empty())
                 {
-                    ROS_WARN_ONCE("Waiting for measurement..");
+                    ROS_WARN_ONCE("Waiting for new measurement..");
                     ros::spinOnce();
                 }
 
+                /// Start from new starting position
                 simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
                 planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
                 bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
@@ -166,7 +175,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
                     assignImpedance(goal);
                     simulator_.transformToRoot(constraints_, goal);
                     int error_index;
-                    plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
+                    plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
                     if(plan_feasible)
                     {
                          execute_result = executer_.Execute(constraints_);
@@ -468,7 +477,7 @@ void WholeBodyPlanner::assignImpedance(const amigo_whole_body_controller::ArmTas
 
         if (goal_constraint.orientation_constraint.absolute_yaw_tolerance == 0) constraints_[i].orientation_constraint.absolute_yaw_tolerance = 0.3;
         else constraints_[i].orientation_constraint.absolute_yaw_tolerance = goal_constraint.orientation_constraint.absolute_yaw_tolerance;
-
     }
+
 
 }

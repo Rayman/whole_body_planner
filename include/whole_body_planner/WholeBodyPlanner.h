@@ -161,6 +161,11 @@ protected:
       */
     tf::TransformListener listener_;
 
+    /**
+      * Maximum iterations for joint-space validation
+      */
+    int max_iterations_;
+
 };
 
 #endif
