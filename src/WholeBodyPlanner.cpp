@@ -107,7 +107,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
         // ToDo: Don't hardcode max_iter
-        plan_feasible = simulator_.checkFeasibility(constraints_, 250, error_index);
+        plan_feasible = simulator_.checkFeasibility(constraints_, 1000, error_index);
         ROS_INFO("Checked feasibility, error_index = %i", error_index);
 
         /// Failure handling
@@ -128,7 +128,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
                 if (plan_result){
                     assignImpedance(goal);
                     simulator_.transformToRoot(constraints_, goal);
-                    plan_feasible = simulator_.checkFeasibility(constraints_, 500, error_index);
+                    plan_feasible = simulator_.checkFeasibility(constraints_, 1000, error_index);
 
                 }
             }
