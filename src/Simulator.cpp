@@ -57,7 +57,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
     path_.poses.resize(0);
 
 
-    for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin(); it_constraints != constraints.end(); ++it_constraints)
+    for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin()+1; it_constraints != constraints.end(); ++it_constraints)
     {
         //ROS_INFO("WBC-Simulator: Checking constraint %i for feasibility",error_index);
         amigo_whole_body_controller::ArmTaskGoal constraint = *it_constraints;
@@ -183,8 +183,8 @@ void Simulator::PublishMarkers( const amigo_whole_body_controller::ArmTaskGoal& 
     marker.type = visualization_msgs::Marker::ARROW;
     static int id_sim = 0;
     marker.id = id_sim++;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
+    marker.scale.x = 1.1;
+    marker.scale.y = 1.1;
     marker.scale.z = 0.05;
     marker.pose.position = constraint.position_constraint.position;
     marker.pose.orientation = constraint.orientation_constraint.orientation;
@@ -282,12 +282,41 @@ void Simulator::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
 #elif ROS_VERSION_MINIMUM(1,8,0)
 // Fuerte
 void Simulator::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
-{
+{	
+	octomap::AbstractOcTree* octree;
+    octree = octomap_msgs::binaryMsgDataToMap(msg->data);
+    std::stringstream datastream;
+    //ROS_INFO("Writing data to stream");
+    octree->writeData(datastream);
+    
+    if (octree) {
+        octomap::OcTreeStamped* octreestamped;
+        octreestamped = new octomap::OcTreeStamped(0.05);
+        //ROS_INFO("Reading data from stream");
+        octreestamped->readData(datastream);
+        //ROS_INFO("Read data from stream");
+        //octreestamped = dynamic_cast<octomap::OcTreeStamped*>(octree);
+        if (!octreestamped){
+            ROS_ERROR("No Octomap created,SIMULATOR");
+        }
+        else{
+            collision_avoidance_->setOctoMap(octreestamped);
+        }
+        delete octree;
+    }
+    else{
+        ROS_ERROR("Octomap conversion error");
+        exit(1);
+    }
+    
+    
+    
+    /*
     octomap::OcTree* tree = octomap_msgs::binaryMsgDataToMap(msg->data);
     if(tree){
         octomap::OcTreeStamped* octree = dynamic_cast<octomap::OcTreeStamped*>(tree);
         if(!octree){
-            ROS_ERROR("No Octomap created");
+            ROS_ERROR("No Octomap created, SIMULATOR");
         }
         else{
             collision_avoidance_->setOctoMap(octree);
@@ -297,6 +326,7 @@ void Simulator::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg
         ROS_ERROR("Octomap conversion error");
         exit(1);
     }
+    */
 }
 #endif
 

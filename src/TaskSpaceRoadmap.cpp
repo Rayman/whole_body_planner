@@ -452,6 +452,34 @@ void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& ms
 // Fuerte
 void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
 {
+	delete octomap_;
+	octomap::AbstractOcTree* octree;
+    octree = octomap_msgs::binaryMsgDataToMap(msg->data);
+    std::stringstream datastream;
+    //ROS_INFO("Writing data to stream");
+    octree->writeData(datastream);
+    if (octree) {
+        octomap::OcTreeStamped* octreestamped;
+        octreestamped = new octomap::OcTreeStamped(0.05);
+        //ROS_INFO("Reading data from stream");
+        octreestamped->readData(datastream);
+        //ROS_INFO("Read data from stream");
+        //octreestamped = dynamic_cast<octomap::OcTreeStamped*>(octree);
+        if (!octreestamped){
+            ROS_ERROR("No Octomap created, prm");
+        }
+        else{
+            octomap_ = octreestamped;
+        }
+        delete octree;
+    }
+    else{
+        ROS_ERROR("Octomap conversion error, prm");
+        exit(1);
+    }
+	
+	
+	/*
     delete octomap_;
     octomap::OcTree* tree = octomap_msgs::binaryMsgDataToMap(msg->data);
     if(tree){
@@ -465,6 +493,7 @@ void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstP
         ROS_ERROR("Octomap conversion error");
         exit(1);
     }
+    */
 }
 #endif
 
