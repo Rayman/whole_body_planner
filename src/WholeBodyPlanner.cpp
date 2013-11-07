@@ -233,7 +233,7 @@ void WholeBodyPlanner::goalCBOldLeft()
     if(goal.position_constraint.header.frame_id == "/amigo/base_link") goal.position_constraint.header.frame_id = "base_link";
 
     /// Plan, simulate and execute
-    ROS_INFO("Plan, simulate, execute");
+    ROS_WARN("Plan, simulate, execute");
     bool result = planSimExecute(goal);
 
     /// If succeeded, pre-grasp required (meaning moving to an offset) and first_joint_pos_only is false:
@@ -401,10 +401,12 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
     /// Incase of pre-grasp = true: add pre-grasp offset to target_point_offset
     if (grasp_goal.PERFORM_PRE_GRASP)
     {
-        goal.position_constraint.target_point_offset.x = 0.20;
-        goal.position_constraint.target_point_offset.y = 0.0;
-        goal.position_constraint.target_point_offset.z = 0.0;
+        goal.position_constraint.target_point_offset.x = 0.20;        
+    } else {
+        goal.position_constraint.target_point_offset.x = 0.0;
     }
+    goal.position_constraint.target_point_offset.y = 0.0;
+    goal.position_constraint.target_point_offset.z = 0.0;
 
     // ToDo: 'sample' yaw
     // ToDo: perform pre_grasp (test: target_point_offset needs to be integrated in whole-body-controller)

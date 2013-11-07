@@ -29,8 +29,6 @@ void Simulator::initialize(const double Ts)
         exit(-1);
     }
 
-
-
     q_ref_.resize(wbc_->getJointNames().size());
     q_ref_.setZero();
     qdot_ref_.resize(wbc_->getJointNames().size());
@@ -78,13 +76,9 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
         goal_pose.header.frame_id = constraint.position_constraint.header.frame_id;
 
         cartesian_impedance->setGoal(goal_pose);
+        cartesian_impedance->setGoalOffset(constraint.position_constraint.target_point_offset);
         //ROS_INFO("WBC-Simulator: Set goal.");
         //ROS_INFO("WBC-Simulator: Goal: %f %f %f %f %f %f",goal_pose.pose.position.x,goal_pose.pose.position.y,goal_pose.pose.position.z,goal_pose.pose.orientation.x,goal_pose.pose.orientation.y,goal_pose.pose.orientation.z);
-        if (constraint.position_constraint.target_point_offset.x != 0.0 || constraint.position_constraint.target_point_offset.y != 0.0 || constraint.position_constraint.target_point_offset.z != 0.0)
-        {
-            ROS_INFO("WBC-Simulator: Setting cartesian pre-grasp position.");
-            cartesian_impedance->setGoalOffset(constraint.position_constraint.target_point_offset);
-        }
         cartesian_impedance->setImpedance(constraint.stiffness);
         cartesian_impedance->setPositionTolerance(constraint.position_constraint.constraint_region_shape);
         cartesian_impedance->setOrientationTolerance(constraint.orientation_constraint.absolute_roll_tolerance, constraint.orientation_constraint.absolute_pitch_tolerance, constraint.orientation_constraint.absolute_yaw_tolerance);

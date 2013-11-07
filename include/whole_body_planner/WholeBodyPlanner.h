@@ -9,6 +9,7 @@
 
 #include <amigo_whole_body_controller/ArmTaskAction.h>
 #include <actionlib/server/simple_action_server.h>
+#include <amigo_arm_navigation/grasp_precomputeAction.h>
 
 /// Messages
 #include <nav_msgs/Path.h>
@@ -123,7 +124,6 @@ protected:
       * @param goal: goal definition
       */
     void assignImpedance(const amigo_whole_body_controller::ArmTaskGoal &goal);
-
 
     /**
       * Functions publishes end-effector trajectory
