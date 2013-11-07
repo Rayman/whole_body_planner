@@ -57,7 +57,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
     path_.poses.resize(0);
 
 
-    for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin()+1; it_constraints != constraints.end(); ++it_constraints)
+    for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin(); it_constraints != constraints.end(); ++it_constraints)
     {
         //ROS_INFO("WBC-Simulator: Checking constraint %i for feasibility",error_index);
         amigo_whole_body_controller::ArmTaskGoal constraint = *it_constraints;
