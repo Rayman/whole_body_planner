@@ -41,10 +41,17 @@ public:
       */
     geometry_msgs::PoseWithCovarianceStamped getAmclPose();
 
+    /**
+      * Function sets base pose (using tf)
+      * This is required since amcl only publishes when the pose is updated
+      */
+    void setAmclPose();
+
 protected:
 
     /// Subscribers and callback functions
-    ros::Subscriber sub_base_;
+    tf::TransformListener listener_;
+    //ros::Subscriber sub_base_;
     ros::Subscriber sub_torso_;
     ros::Subscriber sub_left_arm_;
     ros::Subscriber sub_right_arm_;
@@ -82,14 +89,6 @@ protected:
       * Message containing the amcl-pose, i.e., the pose of the base_link frame in map frame
       */
     geometry_msgs::PoseWithCovarianceStamped amcl_pose_;
-
-    /**
-      * Function to initialize amcl_pose_ (using tf)
-      * This is required since amcl only publishes when the pose is updated
-      */
-    void initializeAmclPose();
-
-
 
 };
 

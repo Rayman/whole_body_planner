@@ -52,9 +52,8 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     //std::map<std::string, double> joint_position_map = robot_state_interface_.getJointPositions();
 
     /// Set initial state simulator (setInitialJointConfiguration)
+    robot_state_interface_->setAmclPose(); // Uses tf to get base pose
     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
-
-
 
     /// Compute constraints
     bool plan_result = false;
