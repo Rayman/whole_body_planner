@@ -1,8 +1,5 @@
 #include "whole_body_planner/RobotStateInterface.h"
 
-// tf
-#include <tf/transform_listener.h>
-
 RobotStateInterface::RobotStateInterface()
 {
     ros::NodeHandle nh_private("~");
@@ -70,6 +67,6 @@ void RobotStateInterface::setAmclPose()
     base_link_pose.pose.orientation.y = 0.0;
     base_link_pose.pose.orientation.z = 0.0;
     base_link_pose.pose.orientation.w = 1.0;
-    listener.transformPose("/map", base_link_pose, map_pose);
+    listener_.transformPose("/map", base_link_pose, map_pose);
     amcl_pose_.pose.pose = map_pose.pose;
 }
