@@ -94,7 +94,8 @@ void PlanningVisualizer::displayPath( const std::vector<std::vector<double> > co
     marker.action = visualization_msgs::Marker::ADD;
 
     // Provide a new id every call to this function
-    static int result_id = 0;
+    static int result_id;
+    result_id++;
     marker.id = result_id;
 
     marker.scale.x = 0.004;

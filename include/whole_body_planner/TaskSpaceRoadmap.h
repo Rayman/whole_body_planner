@@ -56,8 +56,20 @@ public:
     /** \brief Initial planning */
     bool plan(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, const KDL::Frame& start_pose, const KDL::Frame& base_pose);
 
-    /** \brief Return planning result */
-    std::vector<amigo_whole_body_controller::ArmTaskGoal>& getPlan();
+    /** \brief Re planning */
+    bool replan(const KDL::Frame& start_pose);
+
+    /** \brief Shortcut plan to vector format */
+    std::vector<std::vector<double> > shortCutPlanToVector();
+
+    /** \brief Simplifiy plan to ArmTaskGoal format */
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> shortCutPlan();
+
+    /** \brief Smooth plan to vector format */
+    std::vector<std::vector<double> > smoothPlanToVector();
+
+    /** \brief Simplifiy plan to ArmTaskGoal format */
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> smoothPlan();
 
     /** \brief Simplifiy plan to vector format */
     std::vector<std::vector<double> > simplifyPlanToVector();
@@ -71,35 +83,14 @@ public:
     /** \brief Simplifiy plan to ArmTaskGoal format */
     std::vector<amigo_whole_body_controller::ArmTaskGoal> interpolatePlan();
 
-    /** \brief Re planning */
-    bool replan(const KDL::Frame& start_pose);
-
-    /** \brief Validity checker of states */
-    bool isStateValid(const ob::State *state);
-
-    /** \brief Allocate sampling method */
-    ob::ValidStateSamplerPtr allocValidStateSampler(const ob::SpaceInformation *si);
-
-    ob::ValidStateSamplerPtr allocMaximizeClearanceStateSampler(const ob::SpaceInformation *si);
 
     /** \brief Print tags of each sample, used for debugging */
     void printTags();
-
-    /** \brief Check if a milestone is still valid */
-    void updateMilestones(); // should this be seperated from this class?!?
-
-    /** \brief Check if a connection between milestones is still valid */
-    void updateConnections();
-
-    /** \brief Check if a path is still valid*/
-    void updatePath();
 
     /** \brief Convert states in real vector space */
     std::vector<std::vector<double> > convertSolutionToVector();
     std::vector<amigo_whole_body_controller::ArmTaskGoal> convertSolutionToArmTaskGoal();
 
-    /** \brief Delete a state */
-    unsigned int deleteMilestone( const std::vector<double> coordinate );
 
     /** \brief Octomap instance */
     octomap::OcTreeStamped* octomap_;
@@ -109,17 +100,11 @@ public:
     {
         return planner_data_;
     }
-    /** \brief Get the planned data */
+    /** \brief Get the planner status */
     int getStatus()
     {
         return status;
     }
-
-    /** \brief Construct the space */
-    ompl::base::StateSpacePtr constructSpace(const unsigned int dimension = 3);
-
-    /** \brief Set the bounds */
-    void setBounds(ompl::base::StateSpacePtr space, const KDL::Frame& start_pose, const KDL::Frame& base_pose);
 
 protected:
 
@@ -148,12 +133,6 @@ private:
     /** \brief The number of dimensions (ToDo = Make Variable) */
     static const unsigned int DIMENSIONS = 3;
 
-    /** \brief  New solution found (updatingMilestones()) */
-    bool solution_flag;
-
-    /** \brief  Vector containing the constraints for wbc */
-    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_;
-
     /** \brief  Goal constraint received from planner class */
     amigo_whole_body_controller::ArmTaskGoal goal_constraint_;
 
@@ -180,11 +159,25 @@ private:
     void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
 #endif
 
-    /** \brief Set tags, to states which are in solution */
-    void setTags(og::PathGeometric path);
+    /** \brief Solve the problem definition */
+    bool solve();
 
     /** \brief Helper Function: gets the {x,y,z} coordinates for a given vertex_id} */
     std::vector<double> getCoordinates(unsigned int vertex_id);
+
+    /** \brief Validity checker of states */
+    bool isStateValid(const ob::State *state);
+
+    /** \brief Allocate sampling method */
+    ob::ValidStateSamplerPtr allocValidStateSampler(const ob::SpaceInformation *si);
+
+    ob::ValidStateSamplerPtr allocMaximizeClearanceStateSampler(const ob::SpaceInformation *si);
+
+    /** \brief Construct the space */
+    ompl::base::StateSpacePtr constructSpace(const unsigned int dimension = 3);
+
+    /** \brief Set the bounds */
+    void setBounds(ompl::base::StateSpacePtr space, const KDL::Frame& start_pose, const KDL::Frame& base_pose);
 };
 
 #endif

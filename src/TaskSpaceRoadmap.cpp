@@ -41,7 +41,6 @@ bool TaskSpaceRoadmap::isStateValid(const ob::State *state)
             return false;
         }
     }
-    //ROS_WARN("Octree cannot be found, for x = %f, y = %f, z = %f .", coordinate[0],coordinate[1],coordinate[2]);
     return true;
 }
 
@@ -52,7 +51,7 @@ TaskSpaceRoadmap::TaskSpaceRoadmap() : octomap_(NULL)
 
     // Load parameters
     n_.param<double> ("/whole_body_planner/task_space_roadmap/validity_checking_resolution", validity_checking_resolution, 0.005);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/solution_time", solution_time, 1);
+    n_.param<double> ("/whole_body_planner/task_space_roadmap/solution_time", solution_time, 1.0);
     n_.param<double> ("/whole_body_planner/task_space_roadmap/simplification_time", simplification_time, 0.001);
     n_.param<double> ("/whole_body_planner/task_space_roadmap/octomap_resolution", octomap_resolution, 0.05);
     n_.param<int> ("/whole_body_planner/task_space_roadmap/clearance_attempts", clearance_attempts, 10);
@@ -92,16 +91,13 @@ TaskSpaceRoadmap::TaskSpaceRoadmap() : octomap_(NULL)
 
 TaskSpaceRoadmap::~TaskSpaceRoadmap()
 {
-    ROS_INFO("Shutting down global planning");
+    ROS_INFO("Shutting down plannerglobal");
     octomap_sub.shutdown();
     delete octomap_;
 }
 
 bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal_constraint, const KDL::Frame &start_pose, const KDL::Frame &base_pose)
 {
-    // Reset constraints
-    constraints_.clear();
-
     // Save goal_constraint
     goal_constraint_ = goal_constraint;
 
@@ -117,6 +113,8 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
         prm->getProblemDefinition()->clearSolutionPaths();
         prm->getProblemDefinition()->clearGoal();
         prm->getProblemDefinition()->clearStartStates();
+
+        //prm->clear();
     }
 
     // Set the start and goal states
@@ -141,33 +139,16 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
 
     simple_setup_->setStartAndGoalStates(start, goal);
 
-    // Auto setup parameters
-    simple_setup_->setup();
-
-    // Solve
-    ob::PlannerStatus solved = simple_setup_->solve( solution_time );
-
-    if (solved)
-    {
-        ROS_INFO("Solution found");
-        // Get information about the exploration data structure the motion planner used. Used later in visualizing
-        planner_data_.reset( new ob::PlannerData( simple_setup_->getSpaceInformation() ) );
-        simple_setup_->getPlannerData( *planner_data_ );
-        status = 1;
-    }
-    else
-    {
-        ROS_WARN("No solution can be found!");
-    }
-    return solved;
+    return solve();
 }
 
 bool TaskSpaceRoadmap::replan(const KDL::Frame& start_pose)
 {
-    constraints_.clear();
+    // Set new sampling method
     simple_setup_->clear();
     simple_setup_->getSpaceInformation()->setValidStateSamplerAllocator(boost::bind(&TaskSpaceRoadmap::allocMaximizeClearanceStateSampler, this, _1));
-    // Set the start and goal states
+
+    // Set the new start state, goal has not changed
     ob::ScopedState<> start(simple_setup_->getStateSpace());
 
     start[0] = start_pose.p.x();
@@ -176,6 +157,11 @@ bool TaskSpaceRoadmap::replan(const KDL::Frame& start_pose)
 
     simple_setup_->setStartState(start);
 
+    return solve();
+}
+
+bool TaskSpaceRoadmap::solve(){
+
     // Auto setup parameters
     simple_setup_->setup();
 
@@ -195,42 +181,73 @@ bool TaskSpaceRoadmap::replan(const KDL::Frame& start_pose)
         ROS_WARN("No solution can be found!");
     }
     return solved;
-
 }
 
-std::vector<amigo_whole_body_controller::ArmTaskGoal>& TaskSpaceRoadmap::getPlan()
+std::vector<std::vector<double> > TaskSpaceRoadmap::convertSolutionToVector()
 {
-    // Get the path
+
+    // Get the found solution
     og::PathGeometric path = simple_setup_->getSolutionPath();
     const std::vector<ob::State*>& states = path.getStates();
 
-    // Format it in correct msg type
-    amigo_whole_body_controller::ArmTaskGoal constraint;
+    // Setup matrix to return results
+    std::vector<std::vector<double> > coordinates;
 
-    for( int state_id = 0; state_id < int ( states.size() ); ++state_id )
+    // Setup vector to return coordinates
+    std::vector<double> coordinate(DIMENSIONS);
+
+    // Transfer ompl states to coordinates
+    for( int state_id = 1; state_id < int ( states.size() ); ++state_id )
     {
         const ob::State *state = states[ state_id ];
-
-        if (!state){
-            ROS_INFO("STATE NOT VALID");
+        if (!state)
             continue; // no data?
-        }
+
 
         // Convert to RealVectorStateSpace
         const ob::RealVectorStateSpace::StateType *real_state =
                 static_cast<const ob::RealVectorStateSpace::StateType*>(state);
 
-        // Setup constraints
-        constraint.position_constraint.link_name = goal_constraint_.position_constraint.link_name;
-        constraint.position_constraint.header.frame_id = goal_constraint_.position_constraint.header.frame_id;
+        coordinate[0] = real_state->values[0];
+        coordinate[1] = real_state->values[1];
+        coordinate[2] = real_state->values[2];
+
+        coordinates.push_back(coordinate);
+    }
+    return coordinates;
+}
+
+std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::convertSolutionToArmTaskGoal()
+{
+    // Get the found solution
+    og::PathGeometric path = simple_setup_->getSolutionPath();
+    const std::vector<ob::State*>& states = path.getStates();
+
+    // Setup vector to return results
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints;
+
+    // Constraint with same link and root frames
+    amigo_whole_body_controller::ArmTaskGoal constraint;
+    constraint.position_constraint.link_name = goal_constraint_.position_constraint.link_name;
+    constraint.position_constraint.header.frame_id = goal_constraint_.position_constraint.header.frame_id;
+
+    // Transfer ompl states to constraints
+    for( int state_id = 1; state_id < int ( states.size() ); ++state_id )
+    {
+        const ob::State *state = states[ state_id ];
+        if (!state)
+            continue; // no data?
+
+        // Convert ompl to RealVectorStateSpace
+        const ob::RealVectorStateSpace::StateType *real_state =
+                static_cast<const ob::RealVectorStateSpace::StateType*>(state);
+
         constraint.position_constraint.position.x = real_state->values[0];
         constraint.position_constraint.position.y = real_state->values[1];
         constraint.position_constraint.position.z = real_state->values[2];
-
-        // ToDo nice way to find goal and add orientation constraint
-        constraints_.push_back(constraint);
+        constraints.push_back(constraint);
     }
-    return constraints_;
+    return constraints;
 }
 
 ob::StateSpacePtr TaskSpaceRoadmap::constructSpace(const unsigned int dimension)
@@ -257,27 +274,33 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 
     // Check if planning for right or left arm
     if (goal_constraint_.position_constraint.link_name.find("right")!= std::string::npos){
-        y_max = -y_max; y_min = -y_min;
+        y_min = -y_max; y_max = -y_min;
+        ROS_INFO("RIGHT ARM");
     }
 
     if (octomap_->size() > 0){
+
         //Mininimum
         octomap_->getMetricMin(x,y,z);
         ROS_INFO("Octomap minimum dimension in map frame (xyz): %f %f %f", x, y, z);
         if (x > base_pose.p.x()-x_min){
             bounds.setLow(0,x);
+            std::cout<<"X_min = octomap"<<std::endl;
         }
         else {
             bounds.setLow(0,base_pose.p.x()-x_min);
         }
         if (y > base_pose.p.y()-y_min){
             bounds.setLow(1,y);
+            std::cout<<"Y_min = octomap"<<std::endl;
         }
         else{
-            bounds.setLow(1,base_pose.p.y()-y_min);
+            bounds.setLow(1,y_min-base_pose.p.y());
+            std::cout<<"Y_min = "<<y_min - base_pose.p.y()<<std::endl;
         }
         if (z > z_min){
             bounds.setLow(2,z);
+            std::cout<<"Z_min = octomap"<<std::endl;
         }
         else{
             bounds.setLow(2,z_min);
@@ -288,18 +311,21 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
         ROS_INFO("Octomap maximum dimension in map frame (xyz): %f %f %f", x, y, z);
         if (x < base_pose.p.x()+x_max){
             bounds.setHigh(0,x);
+            std::cout<<"X_max = octomap"<<std::endl;
         }
         else{
             bounds.setHigh(0,base_pose.p.x()+x_max);
         }
         if (y < base_pose.p.y()+y_max){
             bounds.setHigh(1,y);
+            std::cout<<"Y_max = octomap"<<std::endl;
         }
         else{
             bounds.setHigh(1,base_pose.p.y()+y_max);
         }
         if (z < z_max){
             bounds.setHigh(2,z);
+            std::cout<<"Z_max = octomap"<<std::endl;
         }
         else{
             bounds.setHigh(2,z_max);
@@ -320,12 +346,41 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 }
 
 
+std::vector<std::vector<double> > TaskSpaceRoadmap::shortCutPlanToVector()
+{
+    simple_setup_->getPathSimplifier()->shortcutPath(simple_setup_->getSolutionPath());
+    std::vector<std::vector<double> > coordinates;
+    return coordinates = convertSolutionToVector();
+}
+
+std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::shortCutPlan()
+{
+    simple_setup_->getPathSimplifier()->shortcutPath(simple_setup_->getSolutionPath());
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_shortcut;
+    return constraints_shortcut = convertSolutionToArmTaskGoal();
+}
+
+std::vector<std::vector<double> > TaskSpaceRoadmap::smoothPlanToVector()
+{
+    simple_setup_->getPathSimplifier()->smoothBSpline(simple_setup_->getSolutionPath());
+    std::vector<std::vector<double> > coordinates;
+    return coordinates = convertSolutionToVector();
+}
+
+std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::smoothPlan()
+{
+    simple_setup_->getPathSimplifier()->smoothBSpline(simple_setup_->getSolutionPath());
+    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints_smoothed;
+    return constraints_smoothed= convertSolutionToArmTaskGoal();
+}
+
 std::vector<std::vector<double> > TaskSpaceRoadmap::simplifyPlanToVector()
 {
     simple_setup_->simplifySolution(simplification_time);
     std::vector<std::vector<double> > coordinates;
     return coordinates = convertSolutionToVector();
 }
+
 std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::simplifyPlan()
 {
     simple_setup_->simplifySolution(simplification_time);
@@ -355,76 +410,6 @@ void TaskSpaceRoadmap::printTags()
         ROS_INFO("Vertex number %d has tag %d",vertex_id,vtx.getTag());
     }
 }
-
-std::vector<std::vector<double> > TaskSpaceRoadmap::convertSolutionToVector()
-{
-    // Setup vector to return coordinates
-    std::vector<double> coordinate(DIMENSIONS);
-
-    // Setup matrix to return results
-    std::vector<std::vector<double> > coordinates;
-
-    // Get data
-    og::PathGeometric path = simple_setup_->getSolutionPath();
-
-    const std::vector<ob::State*>& states = path.getStates();
-
-    for( int state_id = 0; state_id < int ( states.size() ); ++state_id )
-    {
-        const ob::State *state = states[ state_id ];
-        if (!state)
-            continue; // no data?
-
-
-        // Convert to RealVectorStateSpace
-        const ob::RealVectorStateSpace::StateType *real_state =
-                static_cast<const ob::RealVectorStateSpace::StateType*>(state);
-
-        coordinate[0] = real_state->values[0];
-        coordinate[1] = real_state->values[1];
-        coordinate[2] = real_state->values[2];
-
-        // Add to matrix of results {x,y,z}
-        coordinates.push_back(coordinate);
-    }
-    return coordinates;
-}
-
-std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::convertSolutionToArmTaskGoal()
-{
-    // Setup vector to return coordinates
-    std::vector<amigo_whole_body_controller::ArmTaskGoal> constraints;
-
-    // Get data
-    og::PathGeometric path = simple_setup_->getSolutionPath();
-
-    const std::vector<ob::State*>& states = path.getStates();
-    constraints.resize(states.size());
-
-    for( int state_id = 0; state_id < int ( states.size() ); ++state_id )
-    {
-        const ob::State *state = states[ state_id ];
-        if (!state)
-            continue; // no data?
-
-
-        // Convert to RealVectorStateSpace
-        const ob::RealVectorStateSpace::StateType *real_state =
-                static_cast<const ob::RealVectorStateSpace::StateType*>(state);
-
-        constraints[state_id].position_constraint.position.x = real_state->values[0];
-        constraints[state_id].position_constraint.position.y = real_state->values[1];
-        constraints[state_id].position_constraint.position.z = real_state->values[2];
-        constraints[state_id].position_constraint.link_name = goal_constraint_.position_constraint.link_name;
-        constraints[state_id].position_constraint.header.frame_id = goal_constraint_.position_constraint.header.frame_id;
-    }
-    return constraints;
-}
-
-//unsigned int TaskSpaceRoadmap::deleteMilestone(const std::vector<double> coordinate)
-//{
-//    ROS_INFO("Deleting");
-//}
 
 /////////////////////////
 ////     Private     ////
@@ -497,34 +482,6 @@ void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstP
 }
 #endif
 
-void TaskSpaceRoadmap::setTags(og::PathGeometric path)
-{
-
-    ob::ScopedState<> pathstate(planner_data_->getSpaceInformation());
-    ob::ScopedState<> roadmapstate(planner_data_->getSpaceInformation());
-    const std::vector<ob::State*>& states = path.getStates();
-    for( int state_id = 0; state_id < int ( states.size() ); ++state_id )
-    {
-        // SCOPEDSTATE NEEDED TO COMPARE STATES, DIFFERENT STATESPACES, FIND WORKAROUND ADDED NEW STATES AFTER EACH ITER
-        // ALSO ScopedState ARE NOT REMOVED AFTER EXITING FUNCTION
-        // THIS SEEMS STUPID, PATH IS ALREADY KNOWN, WHY LOOP THROUGH EVERY STATE TO CHECK IF IT IS IN SOLUTION!?
-        const ob::State *state = states[ state_id ];
-        pathstate = state;
-
-
-        /// TAG STATE WHICH IS IN SOLUTION
-        for( int vertex_id = 0; vertex_id < int( planner_data_->numVertices() ); ++vertex_id )
-        {
-            roadmapstate = planner_data_->getVertex(vertex_id).getState();
-            if ( pathstate == roadmapstate )
-            {
-                planner_data_->tagState (planner_data_->getVertex(vertex_id).getState(), 1000);
-                break;
-            }
-        }
-    }
-
-}
 std::vector<double> TaskSpaceRoadmap::getCoordinates( unsigned int vertex_id )
 {
     ob::PlannerDataVertex vertex = planner_data_->getVertex( vertex_id );
@@ -554,7 +511,7 @@ std::vector<double> TaskSpaceRoadmap::getCoordinates( unsigned int vertex_id )
 }
 
 
-
+/*
 void TaskSpaceRoadmap::updateMilestones()
 {
     for( int vertex_id = 0; vertex_id < int( planner_data_->numVertices() ); ++vertex_id )
@@ -663,7 +620,7 @@ void TaskSpaceRoadmap::updateMilestones()
         }
     }
 }
-/*
+
 void TaskSpaceRoadmap::updatePath()
 {
     // Retrieve the solution path

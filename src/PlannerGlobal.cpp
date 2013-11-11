@@ -36,8 +36,11 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
     publishMarkers();
 
     /// Get the path
-    constraints = task_space_roadmap_->getPlan();
-    //constraints = task_space_roadmap_->simplifyPlan();
+    //constraints = task_space_roadmap_->getPlan();
+    constraints = task_space_roadmap_->convertSolutionToArmTaskGoal();
+
+    /// Try to shortcut
+    constraints = task_space_roadmap_->shortCutPlan();
 
     ROS_INFO("Constraints: size = %i",(int)constraints.size());
 
@@ -49,24 +52,25 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
 bool PlannerGlobal::reComputeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
     /// Create roadmap and find global path
-    std::cout<<start_pose_.p.x()<<std::endl;
     if(!task_space_roadmap_->replan(start_pose_))
     {
         ROS_INFO("REPLANNING FAILED!");
         return false;
     }
 
-    ros::Duration(2.0).sleep();
-
     /// Visualize in RViz
     publishMarkers();
 
     /// Get the path
-    constraints = task_space_roadmap_->getPlan();
-    //constraints = task_space_roadmap_->simplifyPlan();
+    constraints = task_space_roadmap_->convertSolutionToArmTaskGoal();
+
+    /// Simplify the path
+    constraints = task_space_roadmap_->simplifyPlan();
 
     ROS_INFO("Constraints: size = %i",(int)constraints.size());
 
+
+    /// At this point only 3D constraints are computed by PlannerGlobal, give goal orientation to the rest of constraints
     setOrientation(goal_constraint, constraints);
     return true;
 }
@@ -84,23 +88,27 @@ void PlannerGlobal::publishMarkers()
     visualizer_->displayGraph(task_space_roadmap_->getPlanData());
     visualizer_->displayPath(coordinates,1);
 
+    /*
+    /// Shortcut
+
+    task_space_roadmap_->shortCutPlanToVector();
+    coordinates = task_space_roadmap_->convertSolutionToVector();
+    visualizer_->displayPath(coordinates,2);
+
+    /// Smooth
+    task_space_roadmap_->smoothPlanToVector();
+    coordinates = task_space_roadmap_->convertSolutionToVector();
+    visualizer_->displayPath(coordinates,3);
+
+    */
+
 }
 
 void PlannerGlobal::setOrientation(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
     for( int constraint_id = 0; constraint_id  < int ( constraints.size() ); ++constraint_id )
     {
-        /// Starting pose
-        if (constraint_id  == 0){
-            start_pose_.M.GetQuaternion(constraints[constraint_id].orientation_constraint.orientation.x,
-                                        constraints[constraint_id].orientation_constraint.orientation.y,
-                                        constraints[constraint_id].orientation_constraint.orientation.z,
-                                        constraints[constraint_id].orientation_constraint.orientation.w);
-        }
-        /// Constraints
-        else{
-            constraints[constraint_id].orientation_constraint.orientation = goal_constraint.orientation_constraint.orientation;
-        }
+         constraints[constraint_id].orientation_constraint.orientation = goal_constraint.orientation_constraint.orientation;
     }
 }
 
