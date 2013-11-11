@@ -5,7 +5,7 @@ WholeBodyPlanner::WholeBodyPlanner()
 
     ROS_INFO("Initializing whole body planner");
     ros::NodeHandle nh_private("~");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh; /// Why is this one needed?
 
     /// Action servers
     action_server_ = new actionlib::SimpleActionServer<amigo_whole_body_controller::ArmTaskAction>(nh_private, "motion_constraint", false);
@@ -28,8 +28,16 @@ WholeBodyPlanner::WholeBodyPlanner()
     int planner;
     nh_private.param("planner_type", planner, 0);
     planner_ = planner;
-    nh_private.param<int> ("/whole_body_planner/joint_space_feasibility/iterations", max_iterations_, 1000);
     ROS_INFO("Planner type = %i",planner_);
+
+    XmlRpc::XmlRpcValue default_constraint, intermediate_constraint;
+    nh_private.getParam("/whole_body_planner/default_goal_constraint", default_constraint);
+    nh_private.getParam("/whole_body_planner/intermediate_constraint", intermediate_constraint);
+
+    loadConstraint(default_constraint, default_constraint_);
+    loadConstraint(intermediate_constraint, intermediate_constraint_);
+
+    nh_private.param<int> ("/whole_body_planner/joint_space_feasibility/iterations", max_iterations_, 1000);
 
     // ToDo: don't hardcode
     simulator_.initialize(0.02);
@@ -50,9 +58,6 @@ WholeBodyPlanner::~WholeBodyPlanner()
 
 bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTaskGoal &goal)
 {
-    /// Get initial positions from robot interface
-    //std::map<std::string, double> joint_position_map = robot_state_interface_.getJointPositions();
-
     /// Set initial state simulator (setInitialJointConfiguration)
     robot_state_interface_->setAmclPose(); // Uses tf to get base pose
     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
@@ -95,9 +100,9 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         /// Transform back to root frame
         simulator_.transformToRoot(constraints_, goal);
     }
-    ROS_INFO("Computed plan, result = %d",plan_result);
+    ROS_INFO("Computed plan, result = %d", plan_result);
 
-    /// Check whether constraints are feasible in joint space as well
+    /// Check whether constraints are feasible in joint-space as well
     bool plan_feasible = false;
     if (plan_result)
     {
@@ -126,14 +131,15 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
             else if (planner_ == 2)
             {
                 constraints_.clear();
-                ROS_WARN("Replanning, with maximum clearance");
+                ROS_WARN("plannerglobal: Replanning, with maximum clearance");
                 bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
                 if (plan_result){
                     assignImpedance(goal);
 
-                    // Reset the virtual WBC
+                    /// Reset the virtual WBC to the original starting position
                     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
                     simulator_.transformToRoot(constraints_, goal);
+
                     plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
 
                 }
@@ -146,7 +152,6 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     }
 
     /// If succeeded, send to whole body controller
-
     bool execute_result = false;
 
     if (plan_feasible)
@@ -158,7 +163,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
                 constraints_.clear();
                 ROS_WARN("Replanning, resetting virtual WBC");
 
-                /// Get the current position of the robot
+                /// Get the current robot pose
                 delete robot_state_interface_;
                 robot_state_interface_ = new RobotStateInterface();
                 while (robot_state_interface_->getJointPositions().empty())
@@ -167,7 +172,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
                     ros::spinOnce();
                 }
 
-                /// Start from new starting position
+                /// Start from the current robot pose
                 simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
                 planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
                 bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
@@ -451,35 +456,81 @@ void WholeBodyPlanner::PublishTrajectory(nav_msgs::Path &trajectory)
 
 void WholeBodyPlanner::assignImpedance(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint)
 {
-    // ToDo: dynamic impedances dependent on constraint, i.e. start and goal different characteristics
-    // ToDo: default values in yaml files.
     for (unsigned int i = 0; i < constraints_.size(); i++)
     {
-        // Assign Stiffness
-        // Default values not needed, since cartesian impedance assumes that zero stiffness is a non-constrained dof?
-        constraints_[i].stiffness = goal_constraint.stiffness;
-
-        // Position constraints
-        if (!goal_constraint.position_constraint.constraint_region_shape.dimensions.empty())
+        if (i != constraints_.size()-1)
         {
-            constraints_[i].position_constraint.constraint_region_shape = goal_constraint.position_constraint.constraint_region_shape;
+            constraints_[i] = intermediate_constraint_;
         }
-        // Default: sphere with radius 3.5 cm
+
+        /// Final constraint!
         else {
-            constraints_[i].position_constraint.constraint_region_shape.type = constraints_[i].position_constraint.constraint_region_shape.SPHERE;
-            constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(0.035);
+            // Assign Stiffness
+            constraints_[i].stiffness = goal_constraint.stiffness;
+
+            // Position constraints
+            if (!goal_constraint.position_constraint.constraint_region_shape.dimensions.empty())
+            {
+                constraints_[i].position_constraint.constraint_region_shape = goal_constraint.position_constraint.constraint_region_shape;
+            }
+            else {
+                constraints_[i].position_constraint.constraint_region_shape.type = constraints_[i].position_constraint.constraint_region_shape.SPHERE;
+                constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(default_constraint_.position_constraint.constraint_region_shape.dimensions[0]);
+            }
+
+            // Orientation constraints
+            if (goal_constraint.orientation_constraint.absolute_roll_tolerance == 0)
+                constraints_[i].orientation_constraint.absolute_roll_tolerance = default_constraint_.orientation_constraint.absolute_roll_tolerance;
+            else
+                constraints_[i].orientation_constraint.absolute_roll_tolerance = goal_constraint.orientation_constraint.absolute_roll_tolerance;
+
+            if (goal_constraint.orientation_constraint.absolute_pitch_tolerance == 0)
+                constraints_[i].orientation_constraint.absolute_pitch_tolerance = default_constraint_.orientation_constraint.absolute_pitch_tolerance;
+            else
+                constraints_[i].orientation_constraint.absolute_pitch_tolerance = goal_constraint.orientation_constraint.absolute_pitch_tolerance;
+
+            if (goal_constraint.orientation_constraint.absolute_yaw_tolerance == 0)
+                constraints_[i].orientation_constraint.absolute_yaw_tolerance = default_constraint_.orientation_constraint.absolute_yaw_tolerance;
+            else
+                constraints_[i].orientation_constraint.absolute_yaw_tolerance = goal_constraint.orientation_constraint.absolute_yaw_tolerance;
         }
-
-        // Orientation constraints
-        if (goal_constraint.orientation_constraint.absolute_roll_tolerance == 0) constraints_[i].orientation_constraint.absolute_roll_tolerance = 0.3;
-        else constraints_[i].orientation_constraint.absolute_roll_tolerance = goal_constraint.orientation_constraint.absolute_roll_tolerance;
-
-        if (goal_constraint.orientation_constraint.absolute_pitch_tolerance == 0) constraints_[i].orientation_constraint.absolute_pitch_tolerance = 0.3;
-        else constraints_[i].orientation_constraint.absolute_pitch_tolerance = goal_constraint.orientation_constraint.absolute_pitch_tolerance;
-
-        if (goal_constraint.orientation_constraint.absolute_yaw_tolerance == 0) constraints_[i].orientation_constraint.absolute_yaw_tolerance = 0.3;
-        else constraints_[i].orientation_constraint.absolute_yaw_tolerance = goal_constraint.orientation_constraint.absolute_yaw_tolerance;
     }
 
 
+}
+void WholeBodyPlanner::loadConstraint(XmlRpc::XmlRpcValue param_constraint, amigo_whole_body_controller::ArmTaskGoal &constraint){
+
+    XmlRpc::XmlRpcValue position_stffness = param_constraint["position_stiffness"];
+    XmlRpc::XmlRpcValue position_dimension = param_constraint["position_dimension"];
+    XmlRpc::XmlRpcValue orientation_stiffness = param_constraint["orientation_stiffness"];
+    XmlRpc::XmlRpcValue orientation_tolerance = param_constraint["orientation_tolerance"];
+
+    if (position_stffness.hasMember("x")){
+        constraint.stiffness.force.x = position_stffness["x"];
+    }
+    if (position_stffness.hasMember("y")){
+        constraint.stiffness.force.y = position_stffness["y"];
+    }
+    if (position_stffness.hasMember("z")){
+        constraint.stiffness.force.z = position_stffness["z"];
+    }
+    if (orientation_stiffness.hasMember("r")){
+        constraint.stiffness.torque.x = orientation_stiffness["r"];
+    }
+    if (orientation_stiffness.hasMember("p")){
+        constraint.stiffness.torque.y = orientation_stiffness["p"];
+    }
+    if (orientation_stiffness.hasMember("y")){
+        constraint.stiffness.torque.z = orientation_stiffness["y"];
+    }
+    if (orientation_tolerance.hasMember("r")){
+        constraint.orientation_constraint.absolute_roll_tolerance = orientation_tolerance["r"];
+    }
+    if (orientation_tolerance.hasMember("p")){
+        constraint.orientation_constraint.absolute_pitch_tolerance = orientation_tolerance["p"];
+    }
+    if (orientation_tolerance.hasMember("y")){
+        constraint.orientation_constraint.absolute_yaw_tolerance  = orientation_tolerance["y"];
+    }
+    constraint.position_constraint.constraint_region_shape.dimensions.push_back(position_dimension);
 }

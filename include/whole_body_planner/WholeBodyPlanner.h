@@ -41,7 +41,7 @@ public:
 
 protected:
 
-    amigo_whole_body_controller::ArmTaskGoal default_constraint_;
+
 
     /**
       * Vector containing the list of constraints that is computed by the planner and is sent to the robot
@@ -165,6 +165,18 @@ protected:
       * Maximum iterations for joint-space validation
       */
     int max_iterations_;
+
+    /**
+      * Default constraint specification
+      */
+    amigo_whole_body_controller::ArmTaskGoal default_constraint_;
+
+    /**
+      * Intermediate constraint specification
+      */
+    amigo_whole_body_controller::ArmTaskGoal intermediate_constraint_;
+
+    void loadConstraint(XmlRpc::XmlRpcValue, amigo_whole_body_controller::ArmTaskGoal &constraint);
 
 };
 
