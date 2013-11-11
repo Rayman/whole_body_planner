@@ -460,7 +460,10 @@ void WholeBodyPlanner::assignImpedance(const amigo_whole_body_controller::ArmTas
     {
         if (i != constraints_.size()-1)
         {
-            constraints_[i] = intermediate_constraint_;
+            constraints_[i].position_constraint.constraint_region_shape.type = intermediate_constraint_.position_constraint.constraint_region_shape.SPHERE;
+            constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(intermediate_constraint_.position_constraint.constraint_region_shape.dimensions[0]);
+            constraints_[i].orientation_constraint = intermediate_constraint_.orientation_constraint;
+            constraints_[i].stiffness = intermediate_constraint_.stiffness;
         }
 
         /// Final constraint!
