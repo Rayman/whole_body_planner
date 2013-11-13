@@ -12,7 +12,7 @@ nodes:
     - yaw: 0 
         
   - name: "carrying_pose" 
-    frame_id: "/base_link"
+    frame_id: "base_link"
     dstNodes: 
       - "reset"
       - "pre_grasp"
@@ -25,7 +25,7 @@ nodes:
     - yaw: 0 
         
   - name: "pre_grasp"
-    frame_id: "/base_link"
+    frame_id: "base_link"
     dstNodes:
       - "carrying_pose"
       - "grasp"
@@ -38,7 +38,7 @@ nodes:
     - yaw: 0 
         
   - name: "grasp"
-    frame_id: "/base_link"
+    frame_id: "base_link"
     dstNodes:
       - "pre_grasp"
       - "lift"
@@ -48,7 +48,7 @@ nodes:
     - yaw: 0 
         
   - name: "lift"
-    frame_id: "/base_link"
+    frame_id: "base_link"
     dstNodes: 
       - "pre_grasp"
       - "grasp"

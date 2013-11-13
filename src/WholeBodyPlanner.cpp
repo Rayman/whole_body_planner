@@ -21,7 +21,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     action_server_old_right_->start();
 
     /// Publishers
-    marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 1);
+    marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/whole_body_planner/constraints_out", 1);
     trajectory_pub_   = nh_private.advertise<nav_msgs::Path>("/whole_body_planner/trajectory", 1);
 
     /// Load parameters
@@ -72,6 +72,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     else if (planner_ == 1)
     {
         plan_result = planner_topological_.computeConstraints(goal, constraints_);
+        ROS_INFO("Constraint 0 (%s) at %f,\t%f,\t%f", constraints_[0].goal_type.c_str(), constraints_[0].position_constraint.position.x, constraints_[0].position_constraint.position.y, constraints_[0].position_constraint.position.z);
     }
     else if (planner_ == 2)
     {
@@ -431,6 +432,7 @@ void WholeBodyPlanner::PublishMarkers()
     {
         visualization_msgs::Marker marker;
         marker.header = constraints_[i].position_constraint.header;
+        marker.header.frame_id = "/amigo"+marker.header.frame_id;
         marker.id     = i;
         marker.type   = 0; // Is arrow, to illustrate orientation as well
         marker.pose.position    = constraints_[i].position_constraint.position;

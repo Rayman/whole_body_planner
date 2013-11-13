@@ -171,11 +171,11 @@ bool Graph::initializeGraph()
         }
         if (staticDofs.hasMember("pitch")) {
             staticDofs[4] = true;
-            newNode.position_constraint_.position.x = staticDofs["pitch"];
+            newNode.position_constraint_.position.y = staticDofs["pitch"];
         }
         if (staticDofs.hasMember("yaw")) {
             staticDofs[6] = true;
-            newNode.position_constraint_.position.x = staticDofs["yaw"];
+            newNode.position_constraint_.position.z = staticDofs["yaw"];
         }
         /*try
         {

@@ -35,6 +35,7 @@ void Simulator::initialize(const double Ts)
     qdot_ref_.setZero();
     joint_name_to_index_ = wbc_->getJointNameToIndex();
     marker_pub_ = n_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+    trajectory_pub_ = n_.advertise<nav_msgs::Path>("path", 1);
 
 }
 
@@ -100,6 +101,9 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
                 wbc_->setMeasuredJointPosition(iter2->first, q_ref_[iter2->second]);
                 //ROS_INFO("Pushing back FK Pose");
                 path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id));
+
+                geometry_msgs::PoseStamped fk = wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id);
+                //ROS_INFO("FK tip = [%f\t,%f,\t%f]", fk.pose.position.x, fk.pose.position.y, fk.pose.position.z);
             }
             //std::cout<<"Error x: "<<cartesian_impedance->getError().vel.data[0]<<" y: "<<cartesian_impedance->getError().vel.data[1]<<" z: "<<cartesian_impedance->getError().vel.data[2]<<" r: "<<cartesian_impedance->getError().rot.data[0]<<" p: "<<cartesian_impedance->getError().rot.data[1]<<" y: "<<cartesian_impedance->getError().rot.data[2]<<std::endl;
             ++iter;
@@ -113,6 +117,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
             //ROS_INFO("FKPOS: x: %f, y: %f, z: %f",FKpos.p.x(),FKpos.p.y(),FKpos.p.z());
             ROS_INFO("Maximum iterations reached: remaining error (x,y,z): (%f, %f, %f,)",cartesian_impedance->getError().vel.data[0],cartesian_impedance->getError().vel.data[1],cartesian_impedance->getError().vel.data[2]);
             PublishMarkers(constraint,false);
+            trajectory_pub_.publish(path_);
             return false;
         }
         else
@@ -125,6 +130,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
     }
 
     error_index = -1; // All constraints are feasible
+    trajectory_pub_.publish(path_);
     return true;
 }
 
@@ -177,8 +183,8 @@ void Simulator::PublishMarkers( const amigo_whole_body_controller::ArmTaskGoal& 
     marker.type = visualization_msgs::Marker::ARROW;
     static int id_sim = 0;
     marker.id = id_sim++;
-    marker.scale.x = 1.1;
-    marker.scale.y = 1.1;
+    marker.scale.x = 0.5;
+    marker.scale.y = 0.05;
     marker.scale.z = 0.05;
     marker.pose.position = constraint.position_constraint.position;
     marker.pose.orientation = constraint.orientation_constraint.orientation;

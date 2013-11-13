@@ -22,9 +22,16 @@ bool PlannerTopological::computeConstraints(const amigo_whole_body_controller::A
     /// Get a path from this goal
     constraints = connectivity_graph_.getPlan(current_state_,goal_constraint.goal_type);
 
-    ROS_INFO("Constraints: size = %i",(int)constraints.size());
+    ROS_DEBUG("Constraints: size = %i",(int)constraints.size());
+
+    std::vector<amigo_whole_body_controller::ArmTaskGoal>::iterator iter = constraints.begin();
+    constraints.erase(iter);
+
+    ROS_INFO("Constraints after erasing first: size = %i",(int)constraints.size());
 
     /// Update the current state
-    current_state_ = goal_constraint.goal_type;
+    // ToDo: make this more generic
+    //current_state_ = goal_constraint.goal_type;
+    current_state_ = "reset";
     return true;
 }

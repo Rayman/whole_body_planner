@@ -110,7 +110,7 @@ protected:
     void PublishMarkers(const amigo_whole_body_controller::ArmTaskGoal &constraint, bool result);
 
     /** \brief A shared ROS publisher for visualization in RViz */
-    ros::Publisher marker_pub_;
+    ros::Publisher marker_pub_, trajectory_pub_;
 
     /** \brief A shared private node handle */
     ros::NodeHandle n_;
