@@ -3,14 +3,16 @@ nodes:
     frame_id: "reset"
     dstNodes:
       - "carrying_pose"
-    absCoords: [x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0]
+    DofConstraints: {x: "free", y: "static", z: "dynamic", roll: "bla", pitch: "free", yaw: "free"}
+    absCoords: {x: 0.0, y: 0.0, z: 0.0, roll: 0.0, pitch: 0.0, yaw: 0.0}
         
   - name: "carrying_pose" 
     frame_id: "base_link"
     dstNodes: 
       - "reset"
       - "pre_grasp"
-    absCoords: [x: 0.265, y: 0.2, z: 0.8, roll: 0, pitch: 0, yaw: 0]
+    DofConstraints: {x: "free", y: "free", z: "free", roll: "free", pitch: "free", yaw: "free"}
+    absCoords: {x: 0.265, y: 0.2, z: 0.8, roll: 0.0, pitch: 0.0, yaw: 0.0}
         
   - name: "pre_grasp"
     frame_id: "base_link"
@@ -18,21 +20,24 @@ nodes:
       - "carrying_pose"
       - "grasp"
       - "lift"
-    absCoords: [x: 0.4, y: 0.2, roll: 0, pitch: 0, yaw: 0]
+    DofConstraints: {x: "free", y: "free", z: "free", roll: "free", pitch: "free", yaw: "free"}
+    absCoords: {x: 0.4, y: 0.2, roll: 0.0, pitch: 0.0, yaw: 0.0}
         
   - name: "grasp"
     frame_id: "base_link"
     dstNodes:
       - "pre_grasp"
       - "lift"
-    absCoords: [roll: 0, pitch: 0, yaw: 0]
+    DofConstraints: {x: "free", y: "free", z: "free", roll: "free", pitch: "free", yaw: "free"}
+    absCoords: {roll: 0.0, pitch: 0.0, yaw: 0.0}
         
   - name: "lift"
     frame_id: "base_link"
     dstNodes: 
       - "pre_grasp"
       - "grasp"
-    absCoords: [z: 1.0, roll: 0, pitch: 0, yaw: 0]
+    DofConstraints: {x: "free", y: "free", z: "free", roll: "free", pitch: "free", yaw: "free"}
+    absCoords: {z: 1.0, roll: 0.0, pitch: 0.0, yaw: 0.0}
 
 ### From RoboCup
 #Point forward (JointGoal)
