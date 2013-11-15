@@ -24,6 +24,9 @@
 #include <ompl/base/samplers/MaximizeClearanceValidStateSampler.h>
 #include <whole_body_planner/VisibilityBasedValidStateSampler.h>
 
+// Motion checker method
+#include <whole_body_planner/BoundingBoxMotionValidator.h>
+
 // Arm-navigation_msgs
 #include <arm_navigation_msgs/PositionConstraint.h>
 #include <arm_navigation_msgs/OrientationConstraint.h>
@@ -36,6 +39,8 @@
 
 // Map
 #include <tue_map_3d/Map3D.h>
+
+#include <fstream>
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -106,6 +111,10 @@ public:
         return status;
     }
 
+
+
+
+    std::ofstream myfile;
 protected:
 
     /** \brief Possible sampling methods (default = VisibilityBased) */
@@ -113,7 +122,6 @@ protected:
 
 private:
 
-    // VARIABLES
     /** \brief The resulting roadmap that was searched */
     ob::PlannerDataPtr planner_data_;
 
@@ -149,7 +157,6 @@ private:
     3 = Feasible re-plan found */
     int status;
 
-    // FUNCTIONS
     /** \brief Callback function for octomap */
 #if ROS_VERSION_MINIMUM(1,9,0)
     // Groovy

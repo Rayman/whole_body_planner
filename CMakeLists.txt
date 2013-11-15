@@ -7,7 +7,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  Release        : w/o debug symbols, w/ optimization
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
+set(ROS_BUILD_TYPE Release)
 
 find_package(octomap 1.5 REQUIRED)
 include_directories(BEFORE ${OCTOMAP_INCLUDE_DIRS})
@@ -37,6 +37,7 @@ rosbuild_add_library(taskspaceroadmap
                     src/TaskSpaceRoadmap.cpp
                     src/PlanningVisualizer.cpp
                     src/VisibilityBasedValidStateSampler.cpp
+                    src/BoundingBoxMotionValidator.cpp
                     )
 target_link_libraries(taskspaceroadmap ${OMPL_LIBRARIES})
 
