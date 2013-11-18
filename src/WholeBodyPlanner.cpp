@@ -8,6 +8,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     ros::NodeHandle nh; /// Why is this one needed?
 
     /// Action servers
+    // ToDo: move somewhere else (and keep this class clean)
     action_server_ = new actionlib::SimpleActionServer<amigo_whole_body_controller::ArmTaskAction>(nh_private, "motion_constraint", false);
     action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this));
     action_server_->start();
@@ -30,13 +31,15 @@ WholeBodyPlanner::WholeBodyPlanner()
     planner_ = planner;
     ROS_INFO("Planner type = %i",planner_);
 
+    // ToDo @Teun: these parameters and functions are specific for the global planner so don't belong in this class!!!
+    if (planner_ == 2) {
     XmlRpc::XmlRpcValue default_constraint, intermediate_constraint;
     nh_private.getParam("/whole_body_planner/default_goal_constraint", default_constraint);
     nh_private.getParam("/whole_body_planner/intermediate_constraint", intermediate_constraint);
 
     loadConstraint(default_constraint, default_constraint_);
     loadConstraint(intermediate_constraint, intermediate_constraint_);
-
+    }
     nh_private.param<int> ("/whole_body_planner/joint_space_feasibility/iterations", max_iterations_, 1000);
 
     // ToDo: don't hardcode
@@ -47,6 +50,7 @@ WholeBodyPlanner::WholeBodyPlanner()
 WholeBodyPlanner::~WholeBodyPlanner()
 {
     delete robot_state_interface_;
+    robot_state_interface_ = NULL;
     delete action_server_;
     action_server_ = NULL;
     delete action_server_old_left_;
@@ -109,9 +113,11 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     {
         /// Publish markers
         PublishMarkers();
-
         /// Assign impedance parameters
+        // ToDo: @Teun: shouldn't be here!!!
+        if (planner_ == 2) {
         assignImpedance(goal);
+        }
 
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;

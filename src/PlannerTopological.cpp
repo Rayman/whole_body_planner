@@ -17,7 +17,7 @@ bool PlannerTopological::computeConstraints(const amigo_whole_body_controller::A
     //constraints[0] = goal_constraint;
 
     /// Update the connectivitygraph according to the goal
-    connectivity_graph_.createGraph(goal_constraint);
+    connectivity_graph_.updateGraph(goal_constraint);
 
     /// Get a path from this goal
     constraints = connectivity_graph_.getPlan(current_state_,goal_constraint.goal_type);

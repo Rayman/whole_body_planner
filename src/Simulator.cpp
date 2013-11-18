@@ -55,11 +55,10 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
     path_.header.frame_id = constraints[0].position_constraint.header.frame_id;
     path_.poses.resize(0);
 
-
     for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin(); it_constraints != constraints.end(); ++it_constraints)
     {
-        //ROS_INFO("WBC-Simulator: Checking constraint %i for feasibility",error_index);
         amigo_whole_body_controller::ArmTaskGoal constraint = *it_constraints;
+        ROS_INFO("WBC-Simulator: Checking constraint %i (%s) for feasibility", error_index, constraint.goal_type.c_str());
         CartesianImpedance* cartesian_impedance = new CartesianImpedance(constraint.position_constraint.link_name);
 
         // Check if there is a motion objective for the frame
@@ -100,7 +99,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
                 //ROS_INFO("Setting %s to %f",iter2->first.c_str(),q_ref_[iter2->second]);
                 wbc_->setMeasuredJointPosition(iter2->first, q_ref_[iter2->second]);
                 //ROS_INFO("Pushing back FK Pose");
-                path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id));
+                path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped("/amigo/"+goal_pose.header.frame_id)); // ToDo: remove hack
 
                 geometry_msgs::PoseStamped fk = wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id);
                 //ROS_INFO("FK tip = [%f\t,%f,\t%f]", fk.pose.position.x, fk.pose.position.y, fk.pose.position.z);

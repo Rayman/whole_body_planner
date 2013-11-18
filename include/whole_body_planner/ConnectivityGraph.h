@@ -14,6 +14,10 @@
 #include <string>
 #include <iostream>
 
+/// Parsing of parameters
+#include <ros/ros.h>
+#include <XmlRpcException.h>
+
 /// Arm-navigation_msgs
 #include <arm_navigation_msgs/PositionConstraint.h>
 #include <arm_navigation_msgs/OrientationConstraint.h>
@@ -24,6 +28,16 @@
 enum Status {
     NOT_VISITED,
     VISITED
+};
+
+/// Enum indicating whether a certain DoF is:
+/// Free: no constraint, position/orientation not relevant, stiffness = 0
+/// Static: defined in the parameter file
+/// Dynamic: constraint depends on goal: relative parameters are defined in parameter file
+enum DofConstraint {
+    FREE,
+    STATIC,
+    DYNAMIC
 };
 
 /// Forward declaration
@@ -171,7 +185,7 @@ public:
     /**
       * Indicates orientation contraint
       */
-    arm_navigation_msgs::OrientationConstraint orientation_contraint_;
+    arm_navigation_msgs::OrientationConstraint orientation_constraint_;
 
     /**
       * Sets position constraint
@@ -179,9 +193,28 @@ public:
     void setPositionConstraint(const arm_navigation_msgs::PositionConstraint& new_position_contraint);
 
     /**
-      * Vector containing DoFs which are constant, independent of the target
+      * Vector containing enums of x, y, z, roll, pitch and yaw
+      * Defines which DoFs are free, constrained statically or constrained w.r.t. the goal position
       */
-    std::vector<bool> staticDofs_;
+    std::vector<DofConstraint> dof_constraints_;
+
+    /** Contains the relative offsets (of the constraint w.r.t. the target point */
+    struct relative_coordinates {
+        struct vector3 {
+            double x;
+            double y;
+            double z;
+        } linear, angular;
+    } relative_coordinates_;
+
+    /** Struct containing stiffness */
+    struct stiffness {
+        struct vector3 {
+        double x;
+        double y;
+        double z;
+        } force, torque;
+    } stiffness_;
 
 };
 
@@ -227,6 +260,47 @@ private:
       */
     void addNodeToPlan(Node* insertNode);
 
+    /**
+      * Sets a degree of freedom of a node to free, static, or dynamic
+      */
+    enum DofConstraint setDofContraint(const std::string& type);
+
+    /**
+      * Assigns free, static or dynamic
+      */
+    void determineDofConstraint(Node& node, XmlRpc::XmlRpcValue& dof_constraints);
+
+    /**
+      * Assign static DoFs
+      */
+    void assignStaticDofs(Node& node, XmlRpc::XmlRpcValue& static_dofs);
+
+    /**
+      * Assign dynamic DoFs
+      */
+    void assignDynamicDofs(Node& node, XmlRpc::XmlRpcValue& dynamic_dofs);
+
+    /**
+      * Define offsets
+      */
+    void assignTargetOffsets(Node& node, XmlRpc::XmlRpcValue& target_offsets);
+
+    /**
+      * Assign position constraints
+      */
+    void assignPositionTolerance(Node& node, XmlRpc::XmlRpcValue& tolerance);
+
+    /**
+      * Assigns orientation tolerance
+      * If a certain DoFs is not defined: defaults to 6.3 (>2PI)
+      */
+    void assignOrientationTolerance(Node& node, XmlRpc::XmlRpcValue& tolerance);
+
+    /**
+      * Assigns stiffness
+      */
+    void assignStiffness(Node& node, XmlRpc::XmlRpcValue& stiffness);
+
 public:
     /**
       * Contructor
@@ -239,12 +313,9 @@ public:
     ~Graph();
 
     /**
-      * Creates the graph
-      * Is now hardcoded, should be created otherwise
-      * Possibly create upon initializion
-      * Parameterize upon goal callback
+      * Updates the graph according to the goal constraint
       */
-    void createGraph(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint);
+    void updateGraph(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint);
 
     /**
       * Displays all vertices of this graph
