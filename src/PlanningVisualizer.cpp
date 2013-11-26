@@ -82,7 +82,7 @@ void PlanningVisualizer::displayPath( const std::vector<std::vector<double> > co
     // Set the frame ID and timestamp.
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
-    marker.lifetime = ros::Duration(15.0);
+    marker.lifetime = ros::Duration(35.0);
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     marker.ns = "result_path";
@@ -172,7 +172,7 @@ void PlanningVisualizer::displaySamples(ompl::base::PlannerDataPtr planner_data_
     // Set the frame ID and timestamp.
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
-    marker.lifetime = ros::Duration(10.0);
+    marker.lifetime = ros::Duration(5.0);
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     marker.ns = "sample_locations";
@@ -242,7 +242,7 @@ void PlanningVisualizer::displayGraph(ompl::base::PlannerDataPtr planner_data_)
     // Set the frame ID and timestamp.
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
-    marker.lifetime = ros::Duration(15.0);
+    marker.lifetime = ros::Duration(5.0);
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     marker.ns = "space_exploration";
