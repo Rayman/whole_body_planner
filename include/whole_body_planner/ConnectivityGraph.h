@@ -322,6 +322,9 @@ public:
       */
     void displayGraph();
 
+    /** Returns the nodeList_ */
+    std::vector<Node*> getNodeList() const;
+
     /**
       * Computes a path through the graph
       * @param startPosition: name of the start-node

@@ -43,6 +43,12 @@ protected:
       */
     std::string current_state_;
 
+    /** Marker array publisher to publish the connectivity graph */
+    ros::Publisher marker_array_pub_;
+
+    /** Publishes the connectivity graph as a marker array */
+    void displayConnectivityGraph();
+
 };
 
 #endif

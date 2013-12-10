@@ -636,6 +636,11 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal>& Graph::getPlan(const std:
     return constraints_;
 }
 
+std::vector<Node*> Graph::getNodeList() const
+{
+    return nodeList_;
+}
+
 void Graph::addNodeToPlan(Node* insertNode)
 {
     amigo_whole_body_controller::ArmTaskGoal cp;
