@@ -224,23 +224,23 @@ void WholeBodyPlanner::goalCB()
 void WholeBodyPlanner::goalCBOldLeft()
 {
     ROS_WARN("This action will become deprecated, please convert to the new interface");
-
+    
     /// Messages
     const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal = *action_server_old_left_->acceptNewGoal();
     amigo_whole_body_controller::ArmTaskGoal goal;
-
+    
+	/// Set link names
+    ROS_INFO("Setting link names");
+    goal.position_constraint.link_name = "grippoint_left";
+    goal.orientation_constraint.link_name = "grippoint_left";
+    
     /// Convert goal
     if (!convertGoalType(grasp_goal, goal))
     {
         action_server_old_right_->setAborted();
         return;
     }
-
-    /// Set link names
-    ROS_INFO("Setting link names");
-    goal.position_constraint.link_name = "grippoint_left";
-    goal.orientation_constraint.link_name = "grippoint_left";
-
+    
     //// HARDCODED FIX!!!
     if(goal.position_constraint.header.frame_id == "/amigo/base_link") goal.position_constraint.header.frame_id = "base_link";
 
@@ -252,6 +252,7 @@ void WholeBodyPlanner::goalCBOldLeft()
     /// Perform grasp motion as well (but this time with target_point_offset.x zero)
     if (result && grasp_goal.PERFORM_PRE_GRASP && !grasp_goal.FIRST_JOINT_POS_ONLY)
     {
+		goal.goal_type = "grasp";
         goal.position_constraint.target_point_offset.x = 0.0;
         result = planSimExecute(goal);
     }
@@ -270,21 +271,21 @@ void WholeBodyPlanner::goalCBOldLeft()
 void WholeBodyPlanner::goalCBOldRight()
 {
     ROS_WARN("This action will become deprecated, please convert to the new interface");
-
-    /// Messages
+	
+	/// Messages
     const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal = *action_server_old_right_->acceptNewGoal();
     amigo_whole_body_controller::ArmTaskGoal goal;
 
+	/// Set link names
+    goal.position_constraint.link_name = "grippoint_right";
+    goal.orientation_constraint.link_name = "grippoint_right";
+    
     /// Convert goal
     if (!convertGoalType(grasp_goal, goal))
     {
         action_server_old_right_->setAborted();
         return;
     }
-
-    /// Set link names
-    goal.position_constraint.link_name = "grippoint_right";
-    goal.orientation_constraint.link_name = "grippoint_right";
 
     //// HARDCODED FIX!!!
     if(goal.position_constraint.header.frame_id == "/amigo/base_link") goal.position_constraint.header.frame_id = "base_link";
@@ -297,6 +298,7 @@ void WholeBodyPlanner::goalCBOldRight()
     /// Perform grasp motion as well (but this time with target_point_offset.x zero)
     if (result && grasp_goal.PERFORM_PRE_GRASP && !grasp_goal.FIRST_JOINT_POS_ONLY)
     {
+		goal.goal_type = "grasp";
         goal.position_constraint.target_point_offset.x = 0.0;
         result = planSimExecute(goal);
     }
@@ -350,7 +352,7 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
         geometry_msgs::QuaternionStamped quat_in, quat_out;
 
         /// Position constraint
-        ROS_INFO("Position constraint: position");
+        ROS_INFO("Position constraint: delta position");
         ROS_INFO("Position constraint: x: %f, y: %f, z: %f",grasp_goal.delta.x, grasp_goal.delta.y, grasp_goal.delta.z);
         point_in.header = grasp_goal.delta.header;
         point_in.point.x = grasp_goal.delta.x;
@@ -379,11 +381,21 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
         // Temp: check frame_ids
         ROS_INFO("Frame IDs are %s and %s", point_out.header.frame_id.c_str(), quat_out.header.frame_id.c_str());
 
+        /// Find the pos of end effector
+        KDL::Frame ee_pos = simulator_.getFramePose(goal.position_constraint.link_name);
+        ROS_WARN("EE Position point: x: %f, y: %f, z: %f",ee_pos.p.x() , ee_pos.p.y(), ee_pos.p.z());
+        point_out.point.x = ee_pos.p.x()    +   point_in.point.x;
+        point_out.point.y = ee_pos.p.y()    +   point_in.point.y;
+        point_out.point.z = ee_pos.p.z()    +   point_in.point.z;
+
+
         /// Fill in data in goal
         goal.position_constraint.header         = point_out.header;
         goal.position_constraint.position       = point_out.point;
         goal.orientation_constraint.header      = quat_out.header;
         goal.orientation_constraint.orientation = quat_out.quaternion;
+        ROS_WARN("Delta Position constraint: x: %f, y: %f, z: %f",goal.position_constraint.position.x, goal.position_constraint.position.y, goal.position_constraint.position.z);
+        ROS_WARN("Delta Position point: x: %f, y: %f, z: %f",point_out.point.x , point_out.point.y, point_out.point.z);
     }
     else
     {
@@ -394,7 +406,7 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
     /// Default: sphere with radius 2 cm
     ROS_INFO("Position constriant: constraint region shape");
     goal.position_constraint.constraint_region_shape.type = goal.position_constraint.constraint_region_shape.SPHERE;
-    goal.position_constraint.constraint_region_shape.dimensions.push_back(0.02);
+    goal.position_constraint.constraint_region_shape.dimensions.push_back(0.035);
 
     ROS_INFO("Orientation constraint: tolerances");
     goal.orientation_constraint.absolute_roll_tolerance = 0.3;
@@ -403,12 +415,12 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
 
     /// Stiffness
     ROS_INFO("Stiffness");
-    goal.stiffness.force.x = 100;
-    goal.stiffness.force.y = 100;
-    goal.stiffness.force.z = 100;
-    goal.stiffness.torque.x = 5;
-    goal.stiffness.torque.y = 5;
-    goal.stiffness.torque.z = 5;
+    goal.stiffness.force.x = 70.0;
+    goal.stiffness.force.y = 60.0;
+    goal.stiffness.force.z = 50.0;
+    goal.stiffness.torque.x = 3.0;
+    goal.stiffness.torque.y = 3.0;
+    goal.stiffness.torque.z = 3.0;
 
     /// Incase of pre-grasp = true: add pre-grasp offset to target_point_offset
     if (grasp_goal.PERFORM_PRE_GRASP)

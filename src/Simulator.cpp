@@ -68,6 +68,10 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
                 wbc_->removeMotionObjective(wbc_->getCartesianImpedances(constraint.position_constraint.link_name,constraint.position_constraint.header.frame_id)[i]);
             }
         }
+        if (constraint.goal_type.compare("grasp")==0){
+            ROS_INFO("Received grasp goal, removing object pose from STATIC octomap, this should be generalized!");
+            collision_avoidance_->removeOctomapBBX(constraint.position_constraint.position, constraint.position_constraint.header.frame_id);
+        }
 
         // Transform constrain to goal_pose for cartesian impedance wbc
         geometry_msgs::PoseStamped goal_pose;

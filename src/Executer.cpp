@@ -18,14 +18,14 @@ Executer::~Executer()
 
 bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoal> &constraints)
 {
-    ROS_WARN("No timeouts defined yet");
+    //ROS_WARN("No timeouts defined yet");
 
 
     /// Send goals to the whole body controller
     for (unsigned int i = 0; i < constraints.size(); i++)
     {
         ros::Time start_time = ros::Time::now();
-        action_client_->sendGoalAndWait(constraints[i],ros::Duration(15.0));
+        action_client_->sendGoalAndWait(constraints[i],ros::Duration(40.0));
 
         if (action_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {

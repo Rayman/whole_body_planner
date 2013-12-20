@@ -78,7 +78,7 @@ TaskSpaceRoadmap::TaskSpaceRoadmap() : octomap_(NULL)
     simple_setup_->setPlanner(ob::PlannerPtr(prm));
 
     // Set Sampling method {VisibilityBased, ObstacleBased, Uniformly, MaximumClearance}
-    sampler_ = Uniformly;
+    sampler_ = VisibilityBased;
     simple_setup_->getSpaceInformation()->setValidStateSamplerAllocator(boost::bind(&TaskSpaceRoadmap::allocValidStateSampler, this, _1));
 
     // Set Validiy checking
@@ -115,7 +115,7 @@ bool TaskSpaceRoadmap::plan(const amigo_whole_body_controller::ArmTaskGoal &goal
         prm->getProblemDefinition()->clearGoal();
         prm->getProblemDefinition()->clearStartStates();
 
-        prm->clear();
+        //prm->clear();
     }
 
     // Set the start and goal states
@@ -148,7 +148,7 @@ bool TaskSpaceRoadmap::replan(const KDL::Frame& start_pose)
     // Set new sampling method
     simple_setup_->clear();
     // Set Sampling method {VisibilityBased, ObstacleBased, Uniformly, MaximumClearance}
-    sampler_ = Uniformly;
+    sampler_ = VisibilityBased;
     simple_setup_->getSpaceInformation()->setValidStateSamplerAllocator(boost::bind(&TaskSpaceRoadmap::allocValidStateSampler, this, _1));
     //simple_setup_->getSpaceInformation()->setValidStateSamplerAllocator(boost::bind(&TaskSpaceRoadmap::allocMaximizeClearanceStateSampler, this, _1));
 
@@ -185,9 +185,6 @@ bool TaskSpaceRoadmap::solve(){
     {
         ROS_WARN("No solution can be found!");
     }
-    myfile.open("/home/amigo/ros/fuerte/tue/user/Teun/Log/wbp.txt", std::ios_base::app);
-    myfile <<simple_setup_->getLastPlanComputationTime()<<"\t"<<simple_setup_->getSolutionPath().length()<<"\t "<<simple_setup_->getSolutionPath().smoothness()<<"\t";
-    myfile.close();
     return solved;
 }
 
@@ -235,6 +232,7 @@ std::vector<amigo_whole_body_controller::ArmTaskGoal> TaskSpaceRoadmap::convertS
 
     // Constraint with same link and root frames
     amigo_whole_body_controller::ArmTaskGoal constraint;
+    constraint.goal_type = goal_constraint_.goal_type;
     constraint.position_constraint.link_name = goal_constraint_.position_constraint.link_name;
     constraint.position_constraint.header.frame_id = goal_constraint_.position_constraint.header.frame_id;
 
@@ -291,15 +289,18 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 
         //Mininimum
         octomap_->getMetricMin(x,y,z);
-        ROS_DEBUG("Octomap minimum dimension in map frame (xyz): %f %f %f", x, y, z);
+        ROS_INFO("Octomap minimum dimension in map frame (xyz): %f %f %f", x, y, z);
         if (x > base_pose.p.x()-x_min){
             bounds.setLow(0,x);
+            std::cout<<"X_min = "<<x<<std::endl;
         }
         else {
             bounds.setLow(0,base_pose.p.x()-x_min);
+            std::cout<<"X_min = "<<base_pose.p.x()-x_min<<std::endl;
         }
         if (y > base_pose.p.y()-y_min){
             bounds.setLow(1,y);
+            std::cout<<"Y_min = "<<y<<std::endl;
         }
         else{
             bounds.setLow(1,y_min-base_pose.p.y());
@@ -314,18 +315,22 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 
         //Maximum
         octomap_->getMetricMax(x,y,z);
-        ROS_DEBUG("Octomap maximum dimension in map frame (xyz): %f %f %f", x, y, z);
+        ROS_INFO("Octomap maximum dimension in map frame (xyz): %f %f %f", x, y, z);
         if (x < base_pose.p.x()+x_max){
             bounds.setHigh(0,x);
+            std::cout<<"X_max = "<<x<<std::endl;
         }
         else{
             bounds.setHigh(0,base_pose.p.x()+x_max);
+            std::cout<<"X_max = "<<base_pose.p.x()+x_max<<std::endl;
         }
         if (y < base_pose.p.y()+y_max){
             bounds.setHigh(1,y);
+            std::cout<<"Y_max = "<<y<<std::endl;
         }
         else{
             bounds.setHigh(1,base_pose.p.y()+y_max);
+            std::cout<<"Y_max = "<<base_pose.p.y()+y_max<<std::endl;
         }
         if (z < z_max){
             bounds.setHigh(2,z);
