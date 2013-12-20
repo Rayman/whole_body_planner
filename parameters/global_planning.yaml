@@ -10,7 +10,7 @@ task_space_roadmap:
     solution_time: 0.5
     simplification_time: 0.001
     validity_checking_resolution: 0.005
-    octomap_resolution: 0.05
+    octomap_resolution: 0.025
     clearance_attempts: 250
 
 joint_space_feasibility:
@@ -22,24 +22,24 @@ execution:
 
 default_goal_constraint:
     position_stiffness:
-        x: 150.0
-        y: 150.0
-        z: 120.0
-    position_dimension: 0.02
+        x: 70.0
+        y: 60.0
+        z: 50.0
+    position_dimension: 0.035
     orientation_stiffness:
-        r: 25.0
-        p: 25.0
-        y: 25.0
+        r: 5.0
+        p: 5.0
+        y: 5.0
     orientation_tolerance:
-        r: 0.1
-        p: 0.1
-        y: 0.1
+        r: 0.2
+        p: 0.2
+        y: 0.2
 
 intermediate_constraint:
     position_stiffness:
-        x: 150.0
-        y: 150.0
-        z: 125.0
+        x: 70.0
+        y: 60.0
+        z: 50.0
     position_dimension: 0.08
     orientation_stiffness:
         r: 0.01
@@ -48,19 +48,19 @@ intermediate_constraint:
     orientation_tolerance:
         r: 3.2
         p: 3.2
-        y: 3.2
+        y: 3.14
 
 intermediate_path_constraint:
     position_stiffness:
-        x: 150.0
-        y: 150.0
-        z: 125.0
+        x: 70.0
+        y: 60.0
+        z: 50.0
     position_dimension: 0.08
     orientation_stiffness:
-        r: 25.0
-        p: 25.0
-        y: 0.1
+        r: 3.0
+        p: 3.0
+        y: 0.01
     orientation_tolerance:
         r: 0.3
         p: 0.3
-        y: 2.5
+        y: 3.14
