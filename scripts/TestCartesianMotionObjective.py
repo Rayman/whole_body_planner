@@ -41,7 +41,7 @@ if __name__ == '__main__':
     goal.goal_type = sys.argv[7]
     position_constraint = PositionConstraint()
     position_constraint.header.frame_id = "base_link"
-    position_constraint.link_name = "grippoint_left"
+    position_constraint.link_name = "grippoint_right"
     position_constraint.target_point_offset.x = 0.0
     position_constraint.target_point_offset.y = 0.0
     position_constraint.target_point_offset.z = 0.0
@@ -53,23 +53,19 @@ if __name__ == '__main__':
     
     orientation_constraint = OrientationConstraint()
     orientation_constraint.header.frame_id = "base_link"
-    orientation_constraint.link_name = "grippoint_left"
+    orientation_constraint.link_name = "grippoint_right"
     orientation_constraint.orientation = euler_z_to_quaternion(float(sys.argv[4]),float(sys.argv[5]),float(sys.argv[6]))
     goal.orientation_constraint = orientation_constraint
     rospy.loginfo("Type link or header not yet taken into account")
     rospy.logwarn("Orientation constraint tolerances etc not yet defined")
 
-    goal.stiffness.force.x = 120.0
-    goal.stiffness.force.y = 120.0
-    goal.stiffness.force.z = 120.0
-    goal.stiffness.torque.x = 25.0
-    goal.stiffness.torque.y = 25.0
-    goal.stiffness.torque.z = 25.0
-    
-    orientation_constraint.absolute_roll_tolerance = 0.3
-    orientation_constraint.absolute_pitch_tolerance = 0.3
-    orientation_constraint.absolute_yaw_tolerance = 0.3
-    
+    goal.stiffness.force.x = 70.0
+    goal.stiffness.force.y = 60.0
+    goal.stiffness.force.z = 50.0
+    goal.stiffness.torque.x = 2.0
+    goal.stiffness.torque.y = 2.0
+    goal.stiffness.torque.z = 2.0
+        
     rospy.loginfo(goal)
     
     goal_marker = Marker()
