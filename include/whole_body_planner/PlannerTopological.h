@@ -31,6 +31,9 @@ public:
       */
     bool computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
+    /** Sets current state */
+    void setCurrentState(const std::string& current_state);
+
 protected:
 
     /**

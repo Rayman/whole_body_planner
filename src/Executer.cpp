@@ -7,6 +7,9 @@ Executer::Executer()
     action_client_ = new actionlib::SimpleActionClient<amigo_whole_body_controller::ArmTaskAction>("/add_motion_objective", true);
     ROS_INFO("Waiting for whole body controller");
     action_client_->waitForServer();
+
+    current_state_ = "reset";
+
     ROS_INFO("Connected to server, executer initialized");
 }
 
@@ -30,6 +33,7 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
         if (action_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {
             ROS_INFO("Constraint %d is valid", i);
+            current_state_ = constraints[i].goal_type;
         }
         else
         {
@@ -52,4 +56,8 @@ bool Executer::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoa
     }
 
     return true;
+}
+
+std::string Executer::getCurrentState() {
+    return current_state_;
 }

@@ -199,6 +199,10 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         }
         //ROS_WARN("Computed path is feasible, but Execution disabled!!!");
     }
+
+    // ToDo: make more generic
+    if (planner_ == 1) planner_topological_.setCurrentState(executer_.getCurrentState());
+
     return execute_result;
 }
 

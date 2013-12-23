@@ -29,6 +29,7 @@ bool PlannerTopological::computeConstraints(const amigo_whole_body_controller::A
     displayConnectivityGraph();
 
     /// Get a path from this goal
+    ROS_WARN("Planning from %s to %s", current_state_.c_str(), goal_constraint.goal_type.c_str());
     constraints = connectivity_graph_.getPlan(current_state_,goal_constraint.goal_type);
 
     ROS_DEBUG("Constraints: size = %i",(int)constraints.size());
@@ -41,7 +42,7 @@ bool PlannerTopological::computeConstraints(const amigo_whole_body_controller::A
     /// Update the current state
     // ToDo: make this more generic
     //current_state_ = goal_constraint.goal_type;
-    current_state_ = "reset";
+    //current_state_ = "reset";
     return true;
 }
 
@@ -89,4 +90,8 @@ void PlannerTopological::displayConnectivityGraph()
         }
     }
     marker_array_pub_.publish(marker_array);
+}
+
+void PlannerTopological::setCurrentState(const std::string &current_state) {
+    current_state_ = current_state;
 }

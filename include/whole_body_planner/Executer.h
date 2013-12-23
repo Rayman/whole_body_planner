@@ -32,11 +32,19 @@ public:
     //bool Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoal*> constraints);
     bool Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
+    /** Returns current state
+      * @return Current state */
+    std::string getCurrentState();
+
+
 protected:
 
 private:
 
     actionlib::SimpleActionClient<amigo_whole_body_controller::ArmTaskAction>* action_client_;
+
+    /** Keeps track of the current state of the robot */
+    std::string current_state_;
 
 };
 
