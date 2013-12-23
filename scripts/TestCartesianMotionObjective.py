@@ -41,7 +41,7 @@ if __name__ == '__main__':
     goal.goal_type = sys.argv[7]
     position_constraint = PositionConstraint()
     position_constraint.header.frame_id = "base_link"
-    position_constraint.link_name = "grippoint_right"
+    position_constraint.link_name = "grippoint_left"
     position_constraint.target_point_offset.x = 0.0
     position_constraint.target_point_offset.y = 0.0
     position_constraint.target_point_offset.z = 0.0
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     
     orientation_constraint = OrientationConstraint()
     orientation_constraint.header.frame_id = "base_link"
-    orientation_constraint.link_name = "grippoint_right"
+    orientation_constraint.link_name = "grippoint_left"
     orientation_constraint.orientation = euler_z_to_quaternion(float(sys.argv[4]),float(sys.argv[5]),float(sys.argv[6]))
     goal.orientation_constraint = orientation_constraint
     rospy.loginfo("Type link or header not yet taken into account")

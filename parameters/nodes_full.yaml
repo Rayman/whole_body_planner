@@ -16,13 +16,13 @@ nodes:
     dstNodes: 
       - "reset"
       - "pre_grasp"
-    DofConstraints: {x: "static", y: "static", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
-    absCoords: {x: 0.265, y: 0.2, roll: 0.0, pitch: 0.0}
-    relCoords: {z: 0.0}
+    DofConstraints: {x: "static", y: "static", z: "static", roll: "static", pitch: "static", yaw: "static"}
+    absCoords: {x: 0.265, y: 0.2, z: 0.8, roll: 0.0, pitch: 0.0, yaw: 0.0}
+    relCoords: {}
     offsets: {}
-    positionTolerance: {radius: 0.1, length: 0.05}
-    orientationTolerance: {roll: 0.1, pitch: 0.1}
-    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    positionTolerance: {radius: 0.04, length: 0.03}
+    orientationTolerance: {roll: 0.087, pitch: 0.087, yaw: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0, yaw: 5.0}
         
   - name: "pre_grasp"
     frame_id: "base_link"
@@ -30,39 +30,39 @@ nodes:
       - "carrying_pose"
       - "grasp"
       - "lift"
-    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
-    absCoords: {roll: 0.0, pitch: 0.0}
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "static"}
+    absCoords: {roll: 0.0, pitch: 0.0, yaw: 0.0}
     relCoords: {x: 0.0, y: 0.0, z: 0.0}
     offsets: {x: 0.20}
     positionTolerance: {radius: 0.04, length: 0.03}
-    orientationTolerance: {roll: 0.087, pitch: 0.087}
-    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    orientationTolerance: {roll: 0.087, pitch: 0.087, yaw: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0, yaw: 5.0}
         
   - name: "grasp"
     frame_id: "base_link"
     dstNodes:
       - "pre_grasp"
       - "lift"
-    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
-    absCoords: {roll: 0.0, pitch: 0.0}
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "static"}
+    absCoords: {roll: 0.0, pitch: 0.0, yaw: 0.0}
     relCoords: {x: 0.0, y: 0.0, z: 0.0}
     offsets: {}
     positionTolerance: {radius: 0.04, length: 0.03}
-    orientationTolerance: {roll: 0.087, pitch: 0.087}
-    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    orientationTolerance: {roll: 0.087, pitch: 0.087, yaw: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0, yaw: 5.0}
         
   - name: "lift"
     frame_id: "base_link"
     dstNodes: 
       - "pre_grasp"
       - "grasp"
-    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
-    absCoords: {roll: 0.0, pitch: 0.0}
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "static"}
+    absCoords: {roll: 0.087, pitch: 0.087, yaw: 0.087}
     relCoords: {x: 0.0, y: 0.0, z: 0.10}
     offsets: {}
-    positionTolerance: {radius: 0.1, length: 0.03}
+    positionTolerance: {radius: 0.04, length: 0.03}
     orientationTolerance: {}
-    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0, yaw: 5.0}
 
 ### From RoboCup
 #Point forward (JointGoal)
