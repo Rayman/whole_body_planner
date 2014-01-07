@@ -280,31 +280,91 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 
     // Check which side we are planning for
     if (goal_constraint_.position_constraint.link_name.find("right") != std::string::npos){
+        std::cout<<"Swapping"<<std::endl;
         y_min = -y_min;
         y_max = -y_max;
         std::swap(y_min,y_max);
     }
 
+    // Corners of box
+    KDL::Frame bbx__1, bbx__2, bbx__3, bbx__4;
+    bbx__1.p.x(x_max);    bbx__1.p.y(y_max);    bbx__1.p.z(z_max);
+    bbx__2.p.x(x_min);    bbx__2.p.y(y_min);    bbx__2.p.z(z_min);
+    bbx__3.p.x(x_max);    bbx__3.p.y(y_min);    bbx__3.p.z(z_max);
+    bbx__4.p.x(x_min);    bbx__4.p.y(y_max);    bbx__4.p.z(z_min);
+
+    // Transform box to map
+    KDL::Frame bbx_1 = base_pose*bbx__1;
+    KDL::Frame bbx_2 = base_pose*bbx__2;
+    KDL::Frame bbx_3 = base_pose*bbx__3;
+    KDL::Frame bbx_4 = base_pose*bbx__4;
+
+    // Max
+    x_max = bbx_1.p.x();
+    y_max = bbx_1.p.y();
+    if (bbx_2.p.x() > x_max){
+        x_max = bbx_2.p.x();
+    }
+    if (bbx_3.p.x() > x_max){
+        x_max = bbx_3.p.x();
+    }
+    if (bbx_4.p.x() > x_max){
+        x_max = bbx_4.p.x();
+    }
+
+    if (bbx_2.p.y() > y_max){
+        y_max = bbx_2.p.y();
+    }
+    if (bbx_3.p.y() > y_max){
+        y_max = bbx_3.p.y();
+    }
+    if (bbx_4.p.y() > y_max){
+        y_max = bbx_4.p.y();
+    }
+
+    // Min
+    x_min = bbx_1.p.x();
+    y_min = bbx_1.p.y();
+    if (bbx_2.p.x() < x_min){
+        x_min = bbx_2.p.x();
+    }
+    if (bbx_3.p.x() < x_min){
+        x_min = bbx_3.p.x();
+    }
+    if (bbx_4.p.x() < x_min){
+        x_min = bbx_4.p.x();
+    }
+
+    if (bbx_2.p.y() < y_min){
+        y_min = bbx_2.p.y();
+    }
+    if (bbx_3.p.y() < y_min){
+        y_min = bbx_3.p.y();
+    }
+    if (bbx_4.p.y() < y_min){
+        y_min = bbx_4.p.y();
+    }
+
     if (octomap_->size() > 0){
 
-        //Mininimum
+        // Mininimum
         octomap_->getMetricMin(x,y,z);
         ROS_INFO("Octomap minimum dimension in map frame (xyz): %f %f %f", x, y, z);
-        if (x > base_pose.p.x()-x_min){
+        if (x > x_min){
             bounds.setLow(0,x);
             std::cout<<"X_min = "<<x<<std::endl;
         }
         else {
-            bounds.setLow(0,base_pose.p.x()-x_min);
-            std::cout<<"X_min = "<<base_pose.p.x()-x_min<<std::endl;
+            bounds.setLow(0,x_min);
+            std::cout<<"bX_min = "<<x_min<<std::endl;
         }
-        if (y > base_pose.p.y()-y_min){
+        if (y > y_min){
             bounds.setLow(1,y);
             std::cout<<"Y_min = "<<y<<std::endl;
         }
         else{
-            bounds.setLow(1,y_min-base_pose.p.y());
-            std::cout<<"Y_min = "<<y_min - base_pose.p.y()<<std::endl;
+            bounds.setLow(1,y_min);
+            std::cout<<"bY_min = "<<y_min<<std::endl;
         }
         if (z > z_min){
             bounds.setLow(2,z);
@@ -313,24 +373,24 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
             bounds.setLow(2,z_min);
         }
 
-        //Maximum
+        // Maximum
         octomap_->getMetricMax(x,y,z);
         ROS_INFO("Octomap maximum dimension in map frame (xyz): %f %f %f", x, y, z);
-        if (x < base_pose.p.x()+x_max){
+        if (x < x_max){
             bounds.setHigh(0,x);
             std::cout<<"X_max = "<<x<<std::endl;
         }
         else{
-            bounds.setHigh(0,base_pose.p.x()+x_max);
-            std::cout<<"X_max = "<<base_pose.p.x()+x_max<<std::endl;
+            bounds.setHigh(0,x_max);
+            std::cout<<"bX_max = "<<x_max<<std::endl;
         }
-        if (y < base_pose.p.y()+y_max){
+        if (y < y_max){
             bounds.setHigh(1,y);
             std::cout<<"Y_max = "<<y<<std::endl;
         }
         else{
-            bounds.setHigh(1,base_pose.p.y()+y_max);
-            std::cout<<"Y_max = "<<base_pose.p.y()+y_max<<std::endl;
+            bounds.setHigh(1,y_max);
+            std::cout<<"bY_max = "<<y_max<<std::endl;
         }
         if (z < z_max){
             bounds.setHigh(2,z);
@@ -341,11 +401,11 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
     }
     else {
         ROS_WARN("Octomap has not been loaded, every sample is considered valid!");
-        bounds.setLow(0,base_pose.p.x()-x_min);
-        bounds.setLow(1,base_pose.p.y()-y_min);
+        bounds.setLow(0,x_min);
+        bounds.setLow(1,y_min);
         bounds.setLow(2,z_min);
-        bounds.setHigh(0,base_pose.p.x()+x_max);
-        bounds.setHigh(1,base_pose.p.y()+y_max);
+        bounds.setHigh(0,x_max);
+        bounds.setHigh(1,y_max);
         bounds.setHigh(2,z_max);
     }
     space->as<ob::RealVectorStateSpace>()->setBounds( bounds );
