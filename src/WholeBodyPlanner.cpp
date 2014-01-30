@@ -26,7 +26,7 @@ WholeBodyPlanner::WholeBodyPlanner()
         octomap_sub  = nh_private.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
     #elif ROS_VERSION_MINIMUM(1,8,0)
         // Fuerte
-        octomap_sub  = nh_private.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &Simulator::octoMapCallback, this);
+        octomap_sub  = nh_private.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
     #endif
 
     /// Publishers
@@ -486,7 +486,6 @@ void WholeBodyPlanner::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& ms
             else{
                 simulator_.collision_avoidance_->setOctoMap(octree);
                 planner_global_.task_space_roadmap_->setOctoMap(octree);
-                octomap_sub.shutdown();
             }
         }
         else{
@@ -515,7 +514,8 @@ void WholeBodyPlanner::octoMapCallback(const octomap_msgs::OctomapBinary::ConstP
             ROS_ERROR("No Octomap created, SIMULATOR");
         }
         else{
-            simulator_.collision_avoidance_->setOctoMap(octree);
+            simulator_.collision_avoidance_->setOctoMap(octreestamped);
+            planner_global_.task_space_roadmap_->setOctoMap(octreestamped);
         }
         //delete octree;
     }
