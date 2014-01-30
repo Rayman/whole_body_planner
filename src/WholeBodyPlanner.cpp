@@ -5,7 +5,6 @@ WholeBodyPlanner::WholeBodyPlanner()
 
     ROS_INFO("Initializing whole body planner");
     ros::NodeHandle nh_private("~");
-    ros::NodeHandle nh; /// Why is this one needed?
 
     /// Action servers
     // ToDo: move somewhere else (and keep this class clean)
@@ -21,6 +20,15 @@ WholeBodyPlanner::WholeBodyPlanner()
     action_server_old_right_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldRight, this));
     action_server_old_right_->start();
 
+    /// Subscriber
+    #if ROS_VERSION_MINIMUM(1,9,0)
+        // Groovy
+        octomap_sub  = nh_private.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
+    #elif ROS_VERSION_MINIMUM(1,8,0)
+        // Fuerte
+        octomap_sub  = nh_private.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &Simulator::octoMapCallback, this);
+    #endif
+
     /// Publishers
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/whole_body_planner/constraints_out", 1);
     trajectory_pub_   = nh_private.advertise<nav_msgs::Path>("/whole_body_planner/trajectory", 1);
@@ -31,15 +39,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     planner_ = planner;
     ROS_INFO("Planner type = %i",planner_);
 
-    // ToDo @Teun: these parameters and functions are specific for the global planner so don't belong in this class!!!
-    if (planner_ == 2) {
-    XmlRpc::XmlRpcValue default_constraint, intermediate_constraint;
-    nh_private.getParam("/whole_body_planner/default_goal_constraint", default_constraint);
-    nh_private.getParam("/whole_body_planner/intermediate_constraint", intermediate_constraint);
 
-    loadConstraint(default_constraint, default_constraint_);
-    loadConstraint(intermediate_constraint, intermediate_constraint_);
-    }
     nh_private.param<int> ("/whole_body_planner/joint_space_feasibility/iterations", max_iterations_, 1000);
 
     // ToDo: don't hardcode
@@ -58,6 +58,7 @@ WholeBodyPlanner::~WholeBodyPlanner()
     delete action_server_old_right_;
     action_server_old_right_ = NULL;
 
+    octomap_sub.shutdown();
 }
 
 bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTaskGoal &goal)
@@ -113,15 +114,10 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
     {
         /// Publish markers
         PublishMarkers();
-        /// Assign impedance parameters
-        // ToDo: @Teun: shouldn't be here!!!
-        if (planner_ == 2) {
-        assignImpedance(goal);
-        }
 
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
-        // ToDo: Don't hardcode max_iter
+
         plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
         ROS_INFO("Checked feasibility, error_index = %i", error_index);
 
@@ -139,9 +135,8 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
             {
                 constraints_.clear();
                 ROS_WARN("plannerglobal: Replanning, with maximum clearance");
-                bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
+                bool plan_result = planner_global_.reComputeConstraints(constraints_);
                 if (plan_result){
-                    assignImpedance(goal);
 
                     /// Reset the virtual WBC to the original starting position
                     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
@@ -182,9 +177,8 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
                 /// Start from the current robot pose
                 simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
                 planner_global_.setStartPose(simulator_.getFramePose(goal.position_constraint.link_name));
-                bool plan_result = planner_global_.reComputeConstraints(goal,constraints_);
+                bool plan_result = planner_global_.reComputeConstraints(constraints_);
                 if (plan_result){
-                    assignImpedance(goal);
                     simulator_.transformToRoot(constraints_, goal);
                     int error_index;
                     plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
@@ -197,7 +191,6 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
             }
 
         }
-        //ROS_WARN("Computed path is feasible, but Execution disabled!!!");
     }
 
     // ToDo: make more generic
@@ -478,86 +471,76 @@ void WholeBodyPlanner::PublishTrajectory(nav_msgs::Path &trajectory)
     trajectory_pub_.publish(trajectory);
 }
 
-void WholeBodyPlanner::assignImpedance(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint)
+
+#if ROS_VERSION_MINIMUM(1,9,0)
+// Groovy
+void WholeBodyPlanner::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
 {
-    for (unsigned int i = 0; i < constraints_.size(); i++)
-    {
-        if (i != constraints_.size()-1)
-        {
-            constraints_[i].position_constraint.constraint_region_shape.type = intermediate_constraint_.position_constraint.constraint_region_shape.SPHERE;
-            constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(intermediate_constraint_.position_constraint.constraint_region_shape.dimensions[0]);
-            constraints_[i].orientation_constraint = intermediate_constraint_.orientation_constraint;
-            constraints_[i].stiffness = intermediate_constraint_.stiffness;
-        }
 
-        /// Final constraint!
-        else {
-            // Assign Stiffness
-            constraints_[i].stiffness = goal_constraint.stiffness;
-
-            // Position constraints
-            if (!goal_constraint.position_constraint.constraint_region_shape.dimensions.empty())
-            {
-                constraints_[i].position_constraint.constraint_region_shape = goal_constraint.position_constraint.constraint_region_shape;
+        octomap::AbstractOcTree* tree = octomap_msgs::msgToMap(*msg);
+        if(tree){
+            octomap::OcTreeStamped* octree = dynamic_cast<octomap::OcTreeStamped*>(tree);
+            if(!octree){
+                ROS_ERROR("No Octomap created");
             }
-            else {
-                constraints_[i].position_constraint.constraint_region_shape.type = constraints_[i].position_constraint.constraint_region_shape.SPHERE;
-                constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(default_constraint_.position_constraint.constraint_region_shape.dimensions[0]);
+            else{
+                simulator_.collision_avoidance_->setOctoMap(octree);
+                planner_global_.task_space_roadmap_->setOctoMap(octree);
+                octomap_sub.shutdown();
             }
+        }
+        else{
+            ROS_ERROR("Octomap conversion error");
+            exit(1);
+        }
+}
+#elif ROS_VERSION_MINIMUM(1,8,0)
+// Fuerte
+void WholeBodyPlanner::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
+{
+    octomap::AbstractOcTree* octree;
+    octree = octomap_msgs::binaryMsgDataToMap(msg->data);
+    std::stringstream datastream;
+    //ROS_INFO("Writing data to stream");
+    octree->writeData(datastream);
 
-            // Orientation constraints
-            if (goal_constraint.orientation_constraint.absolute_roll_tolerance == 0)
-                constraints_[i].orientation_constraint.absolute_roll_tolerance = default_constraint_.orientation_constraint.absolute_roll_tolerance;
-            else
-                constraints_[i].orientation_constraint.absolute_roll_tolerance = goal_constraint.orientation_constraint.absolute_roll_tolerance;
+    if (octree) {
+        octomap::OcTreeStamped* octreestamped;
+        octreestamped = new octomap::OcTreeStamped(0.05);
+        //ROS_INFO("Reading data from stream");
+        octreestamped->readData(datastream);
+        //ROS_INFO("Read data from stream");
+        //octreestamped = dynamic_cast<octomap::OcTreeStamped*>(octree);
+        if (!octreestamped){
+            ROS_ERROR("No Octomap created, SIMULATOR");
+        }
+        else{
+            simulator_.collision_avoidance_->setOctoMap(octree);
+        }
+        //delete octree;
+    }
+    else{
+        ROS_ERROR("Octomap conversion error, SIMULATOR");
+        exit(1);
+    }
 
-            if (goal_constraint.orientation_constraint.absolute_pitch_tolerance == 0)
-                constraints_[i].orientation_constraint.absolute_pitch_tolerance = default_constraint_.orientation_constraint.absolute_pitch_tolerance;
-            else
-                constraints_[i].orientation_constraint.absolute_pitch_tolerance = goal_constraint.orientation_constraint.absolute_pitch_tolerance;
 
-            if (goal_constraint.orientation_constraint.absolute_yaw_tolerance == 0)
-                constraints_[i].orientation_constraint.absolute_yaw_tolerance = default_constraint_.orientation_constraint.absolute_yaw_tolerance;
-            else
-                constraints_[i].orientation_constraint.absolute_yaw_tolerance = goal_constraint.orientation_constraint.absolute_yaw_tolerance;
+
+    /*
+    octomap::OcTree* tree = octomap_msgs::binaryMsgDataToMap(msg->data);
+    if(tree){
+        octomap::OcTreeStamped* octree = dynamic_cast<octomap::OcTreeStamped*>(tree);
+        if(!octree){
+            ROS_ERROR("No Octomap created, SIMULATOR");
+        }
+        else{
+            collision_avoidance_->setOctoMap(octree);
         }
     }
-
-
+    else{
+        ROS_ERROR("Octomap conversion error");
+        exit(1);
+    }
+    */
 }
-void WholeBodyPlanner::loadConstraint(XmlRpc::XmlRpcValue param_constraint, amigo_whole_body_controller::ArmTaskGoal &constraint){
-
-    XmlRpc::XmlRpcValue position_stffness = param_constraint["position_stiffness"];
-    XmlRpc::XmlRpcValue position_dimension = param_constraint["position_dimension"];
-    XmlRpc::XmlRpcValue orientation_stiffness = param_constraint["orientation_stiffness"];
-    XmlRpc::XmlRpcValue orientation_tolerance = param_constraint["orientation_tolerance"];
-
-    if (position_stffness.hasMember("x")){
-        constraint.stiffness.force.x = position_stffness["x"];
-    }
-    if (position_stffness.hasMember("y")){
-        constraint.stiffness.force.y = position_stffness["y"];
-    }
-    if (position_stffness.hasMember("z")){
-        constraint.stiffness.force.z = position_stffness["z"];
-    }
-    if (orientation_stiffness.hasMember("r")){
-        constraint.stiffness.torque.x = orientation_stiffness["r"];
-    }
-    if (orientation_stiffness.hasMember("p")){
-        constraint.stiffness.torque.y = orientation_stiffness["p"];
-    }
-    if (orientation_stiffness.hasMember("y")){
-        constraint.stiffness.torque.z = orientation_stiffness["y"];
-    }
-    if (orientation_tolerance.hasMember("r")){
-        constraint.orientation_constraint.absolute_roll_tolerance = orientation_tolerance["r"];
-    }
-    if (orientation_tolerance.hasMember("p")){
-        constraint.orientation_constraint.absolute_pitch_tolerance = orientation_tolerance["p"];
-    }
-    if (orientation_tolerance.hasMember("y")){
-        constraint.orientation_constraint.absolute_yaw_tolerance  = orientation_tolerance["y"];
-    }
-    constraint.position_constraint.constraint_region_shape.dimensions.push_back(position_dimension);
-}
+#endif

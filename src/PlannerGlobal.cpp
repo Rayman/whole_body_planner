@@ -1,11 +1,20 @@
 #include "whole_body_planner/PlannerGlobal.h"
 PlannerGlobal::PlannerGlobal()
 {
-    // Setup planning object
+    /// Setup planning object
     task_space_roadmap_ = new TaskSpaceRoadmap();
 
-    // Setup visualization object
+    /// Setup visualization object
     visualizer_ = new PlanningVisualizer();
+
+    /// Load intermediate (path) and default goal constraint
+    XmlRpc::XmlRpcValue default_constraint, intermediate_constraint;
+    nh_private.getParam("/whole_body_planner/default_goal_constraint", default_constraint);
+    nh_private.getParam("/whole_body_planner/intermediate_constraint", intermediate_constraint);
+
+    loadConstraint(default_constraint, default_constraint_);
+    loadConstraint(intermediate_constraint, intermediate_constraint_);
+
 }
 
 PlannerGlobal::~PlannerGlobal()
@@ -14,28 +23,22 @@ PlannerGlobal::~PlannerGlobal()
     delete visualizer_;
 }
 
-void PlannerGlobal::setStartPose(KDL::Frame start_pose)
-{
-    start_pose_ = start_pose;
-}
 
-void PlannerGlobal::setBasePose(KDL::Frame base_pose)
-{
-    base_pose_ = base_pose;
-}
 
 bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
-	std::cout<<goal_constraint.goal_type<<std::endl;
+
+    goal_constraint_ = goal_constraint;
+
 	if (goal_constraint.goal_type.compare("grasp")==0){
         ROS_INFO("Received grasp goal, removing object pose from STATIC octomap, this should be generalized!");
         //removeOctomapBBX(goal_constraint.position_constraint.position, goal_constraint.position_constraint.header.frame_id);
     }
-	
-	
+		
     /// Create roadmap and find global path
-    if(!task_space_roadmap_->plan(goal_constraint, start_pose_, base_pose_)){
-        ROS_INFO("NO PLAN!");
+    if(!task_space_roadmap_->plan(goal_constraint_, start_pose_, base_pose_)){
+
+        ROS_INFO("Global planning could not find a path!");
         return false;
     }
 
@@ -43,7 +46,6 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
     publishMarkers();
 
     /// Get the path
-    //constraints = task_space_roadmap_->getPlan();
     constraints = task_space_roadmap_->convertSolutionToArmTaskGoal();
 
     /// Try to shortcut
@@ -52,16 +54,19 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
     ROS_INFO("Constraints: size = %i",(int)constraints.size());
 
     /// At this point only 3D constraints are computed by PlannerGlobal, give goal orientation to the rest of constraints
-    setOrientation(goal_constraint, constraints);
+    setOrientation(constraints);
+    assignImpedance(constraints);
+
+
     return true;
 }
 
-bool PlannerGlobal::reComputeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
+bool PlannerGlobal::reComputeConstraints(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
     /// Create roadmap and find global path
     if(!task_space_roadmap_->replan(start_pose_))
     {
-        ROS_INFO("REPLANNING FAILED!");
+        ROS_INFO("Global planning could not find a path!");
         return false;
     }
 
@@ -72,13 +77,14 @@ bool PlannerGlobal::reComputeConstraints(const amigo_whole_body_controller::ArmT
     constraints = task_space_roadmap_->convertSolutionToArmTaskGoal();
 
     /// Simplify the path
-    constraints = task_space_roadmap_->simplifyPlan();
+    constraints = task_space_roadmap_->shortCutPlan();
 
     ROS_INFO("Constraints: size = %i",(int)constraints.size());
 
 
     /// At this point only 3D constraints are computed by PlannerGlobal, give goal orientation to the rest of constraints
-    setOrientation(goal_constraint, constraints);
+    setOrientation( constraints);
+    assignImpedance(constraints);
     return true;
 }
 
@@ -93,9 +99,7 @@ void PlannerGlobal::publishMarkers()
     //std::vector<std::vector<double> > coordinates = task_space_roadmap_->convertSolutionToVector();
     std::vector<std::vector<double> > coordinates = task_space_roadmap_->shortCutPlanToVector();
     visualizer_->displaySamples(task_space_roadmap_->getPlanData());
-    ros::Duration(0.1).sleep();
     visualizer_->displayGraph(task_space_roadmap_->getPlanData());
-    ros::Duration(0.1).sleep();
     visualizer_->displayPath(coordinates,1);
 
     /*
@@ -114,12 +118,107 @@ void PlannerGlobal::publishMarkers()
 
 }
 
-void PlannerGlobal::setOrientation(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
+void PlannerGlobal::setOrientation( std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints)
 {
     for( int constraint_id = 0; constraint_id  < int ( constraints.size() ); ++constraint_id )
     {
-         constraints[constraint_id].orientation_constraint.orientation = goal_constraint.orientation_constraint.orientation;
+         constraints[constraint_id].orientation_constraint.orientation = goal_constraint_.orientation_constraint.orientation;
     }
+}
+
+void PlannerGlobal::loadConstraint(XmlRpc::XmlRpcValue param_constraint, amigo_whole_body_controller::ArmTaskGoal &constraint){
+
+    XmlRpc::XmlRpcValue position_stiffness = param_constraint["position_stiffness"];
+    XmlRpc::XmlRpcValue position_dimension = param_constraint["position_dimension"];
+    XmlRpc::XmlRpcValue orientation_stiffness = param_constraint["orientation_stiffness"];
+    XmlRpc::XmlRpcValue orientation_tolerance = param_constraint["orientation_tolerance"];
+
+    if (position_stiffness.hasMember("x")){
+        constraint.stiffness.force.x = position_stiffness["x"];
+    }
+    if (position_stiffness.hasMember("y")){
+        constraint.stiffness.force.y = position_stiffness["y"];
+    }
+    if (position_stiffness.hasMember("z")){
+        constraint.stiffness.force.z = position_stiffness["z"];
+    }
+    if (orientation_stiffness.hasMember("r")){
+        constraint.stiffness.torque.x = orientation_stiffness["r"];
+    }
+    if (orientation_stiffness.hasMember("p")){
+        constraint.stiffness.torque.y = orientation_stiffness["p"];
+    }
+    if (orientation_stiffness.hasMember("y")){
+        constraint.stiffness.torque.z = orientation_stiffness["y"];
+    }
+    if (orientation_tolerance.hasMember("r")){
+        constraint.orientation_constraint.absolute_roll_tolerance = orientation_tolerance["r"];
+    }
+    if (orientation_tolerance.hasMember("p")){
+        constraint.orientation_constraint.absolute_pitch_tolerance = orientation_tolerance["p"];
+    }
+    if (orientation_tolerance.hasMember("y")){
+        constraint.orientation_constraint.absolute_yaw_tolerance  = orientation_tolerance["y"];
+    }
+    constraint.position_constraint.constraint_region_shape.dimensions.push_back(position_dimension);
+}
+
+void PlannerGlobal::assignImpedance( std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints_)
+{
+    for (unsigned int i = 0; i < constraints_.size(); i++)
+    {
+        if (i != constraints_.size()-1)
+        {
+            constraints_[i].position_constraint.constraint_region_shape.type = intermediate_constraint_.position_constraint.constraint_region_shape.SPHERE;
+            constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(intermediate_constraint_.position_constraint.constraint_region_shape.dimensions[0]);
+            constraints_[i].orientation_constraint = intermediate_constraint_.orientation_constraint;
+            constraints_[i].stiffness = intermediate_constraint_.stiffness;
+        }
+
+        /// Final constraint!
+        else {
+            // Assign Stiffness
+            constraints_[i].stiffness = goal_constraint_.stiffness;
+
+            // Position constraints
+            if (!goal_constraint_.position_constraint.constraint_region_shape.dimensions.empty())
+            {
+                constraints_[i].position_constraint.constraint_region_shape = goal_constraint_.position_constraint.constraint_region_shape;
+            }
+            else {
+                constraints_[i].position_constraint.constraint_region_shape.type = constraints_[i].position_constraint.constraint_region_shape.SPHERE;
+                constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(default_constraint_.position_constraint.constraint_region_shape.dimensions[0]);
+            }
+
+            // Orientation constraints
+            if (goal_constraint_.orientation_constraint.absolute_roll_tolerance == 0)
+                constraints_[i].orientation_constraint.absolute_roll_tolerance = default_constraint_.orientation_constraint.absolute_roll_tolerance;
+            else
+                constraints_[i].orientation_constraint.absolute_roll_tolerance = goal_constraint_.orientation_constraint.absolute_roll_tolerance;
+
+            if (goal_constraint_.orientation_constraint.absolute_pitch_tolerance == 0)
+                constraints_[i].orientation_constraint.absolute_pitch_tolerance = default_constraint_.orientation_constraint.absolute_pitch_tolerance;
+            else
+                constraints_[i].orientation_constraint.absolute_pitch_tolerance = goal_constraint_.orientation_constraint.absolute_pitch_tolerance;
+
+            if (goal_constraint_.orientation_constraint.absolute_yaw_tolerance == 0)
+                constraints_[i].orientation_constraint.absolute_yaw_tolerance = default_constraint_.orientation_constraint.absolute_yaw_tolerance;
+            else
+                constraints_[i].orientation_constraint.absolute_yaw_tolerance = goal_constraint_.orientation_constraint.absolute_yaw_tolerance;
+        }
+    }
+
+
+}
+
+void PlannerGlobal::setStartPose(KDL::Frame start_pose)
+{
+    start_pose_ = start_pose;
+}
+
+void PlannerGlobal::setBasePose(KDL::Frame base_pose)
+{
+    base_pose_ = base_pose;
 }
 
 /*

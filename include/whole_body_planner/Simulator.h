@@ -59,7 +59,7 @@ public:
     nav_msgs::Path getPath();
 
     /**
-      * Returns the starting pose of frame from /base_link
+      * Returns the starting pose of frame_name
       */
     KDL::Frame getFramePose(const std::string& frame_name);
 
@@ -67,15 +67,15 @@ public:
 
     void transformToRoot(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints, const amigo_whole_body_controller::ArmTaskGoal& goal);
 
-    /** \brief Callback function for octomap */
-#if ROS_VERSION_MINIMUM(1,9,0)
-    // Groovy
-    void octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg);
-#elif ROS_VERSION_MINIMUM(1,8,0)
-    // Fuerte
-    void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
-#endif
+    /**
+      * Virtual Collision avoidance object
+      */
+    CollisionAvoidance* collision_avoidance_;
 
+
+    /**
+      * Virtual Collision avoidance object
+      */
     void loadParameterFiles(CollisionAvoidance::collisionAvoidanceParameters &ca_param);
 
 protected:
@@ -84,8 +84,7 @@ protected:
       * Whole body controller object for forward simulation
       */
     WholeBodyController* wbc_;
-    CollisionAvoidance* collision_avoidance_;
-    ros::Subscriber octomap_sub;
+
 
     /**
       * Desired joint positions

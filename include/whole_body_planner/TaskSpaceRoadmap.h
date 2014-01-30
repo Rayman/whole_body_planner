@@ -111,8 +111,7 @@ public:
         return status;
     }
 
-
-
+    void setOctoMap(octomap::OcTreeStamped* octree);
 
     std::ofstream myfile;
 protected:

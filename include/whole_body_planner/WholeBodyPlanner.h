@@ -39,6 +39,15 @@ public:
       */
     virtual ~WholeBodyPlanner();
 
+    /** \brief Callback function for octomap */
+#if ROS_VERSION_MINIMUM(1,9,0)
+    // Groovy
+    void octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg);
+#elif ROS_VERSION_MINIMUM(1,8,0)
+    // Fuerte
+    void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
+#endif
+
 protected:
 
 
@@ -120,12 +129,6 @@ protected:
     void PublishMarkers();
 
     /**
-      * Assigns cartesian impedance stiffnesses and constraint region parameters
-      * @param goal: goal definition
-      */
-    void assignImpedance(const amigo_whole_body_controller::ArmTaskGoal &goal);
-
-    /**
       * Functions publishes end-effector trajectory
       */
     void PublishTrajectory(nav_msgs::Path& trajectory);
@@ -166,17 +169,9 @@ protected:
       */
     int max_iterations_;
 
-    /**
-      * Default constraint specification
-      */
-    amigo_whole_body_controller::ArmTaskGoal default_constraint_;
+    ros::Subscriber octomap_sub;
 
-    /**
-      * Intermediate constraint specification
-      */
-    amigo_whole_body_controller::ArmTaskGoal intermediate_constraint_;
 
-    void loadConstraint(XmlRpc::XmlRpcValue, amigo_whole_body_controller::ArmTaskGoal &constraint);
 
 };
 

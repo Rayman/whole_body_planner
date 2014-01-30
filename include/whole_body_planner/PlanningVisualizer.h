@@ -50,7 +50,7 @@ private:
     void interpolateLine( double x1, double y1, double z1, double x2, double y2, double z2, visualization_msgs::Marker* marker, std_msgs::ColorRGBA* color );
 
     /** \brief A shared ROS publisher for visualization in RViz */
-    ros::Publisher marker_pub_;
+    ros::Publisher marker_pub_,markera_pub_;
 
     /** \brief A shared private node handle */
     ros::NodeHandle n_;

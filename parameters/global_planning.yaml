@@ -42,9 +42,9 @@ intermediate_constraint:
         z: 50.0
     position_dimension: 0.08
     orientation_stiffness:
-        r: 0.01
-        p: 0.01
-        y: 0.01
+        r: 0.00
+        p: 0.00
+        y: 0.00
     orientation_tolerance:
         r: 3.2
         p: 3.2

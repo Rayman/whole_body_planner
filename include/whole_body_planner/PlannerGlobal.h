@@ -28,10 +28,10 @@ public:
     /**
       * Computes series of constraints
       * @param goal_constraint: goal constraint
-      * @param constraints: vector containing pointers to goal constraints
+      * @param constraints: vector containing constraints describing the path
       */
     bool computeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
-    bool reComputeConstraints(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
+    bool reComputeConstraints(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
     /**
       *
@@ -45,17 +45,19 @@ public:
       */
     void interpolateConstraints(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
-
-protected:
-
-
-    void publishMarkers();
-    void setOrientation(const amigo_whole_body_controller::ArmTaskGoal& goal_constraint, std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
-
     /**
       * Global Planner
       */
     TaskSpaceRoadmap* task_space_roadmap_;
+
+protected:
+
+    /** \brief A shared private node handle */
+    ros::NodeHandle nh_private;
+
+    void publishMarkers();
+
+    void setOrientation(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
     /**
       * RViz Visualization
@@ -67,6 +69,27 @@ protected:
       */
     KDL::Frame start_pose_;
     KDL::Frame base_pose_;
+
+    amigo_whole_body_controller::ArmTaskGoal goal_constraint_;
+
+
+    /**
+      * Default constraint specification
+      */
+    amigo_whole_body_controller::ArmTaskGoal default_constraint_;
+
+    /**
+      * Intermediate constraint specification
+      */
+    amigo_whole_body_controller::ArmTaskGoal intermediate_constraint_;
+
+    void loadConstraint(XmlRpc::XmlRpcValue, amigo_whole_body_controller::ArmTaskGoal &constraint);
+
+    /**
+      * Assigns cartesian impedance stiffnesses and constraint region parameters
+      * @param goal: goal definition
+      */
+    void assignImpedance(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints_);
 
 };
 

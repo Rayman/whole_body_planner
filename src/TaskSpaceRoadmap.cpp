@@ -56,16 +56,8 @@ TaskSpaceRoadmap::TaskSpaceRoadmap() : octomap_(NULL)
     n_.param<double> ("/whole_body_planner/task_space_roadmap/octomap_resolution", octomap_resolution, 0.05);
     n_.param<int> ("/whole_body_planner/task_space_roadmap/clearance_attempts", clearance_attempts, 10);
 
-    // Octomap subscription
+    // Octomap
     octomap_ = new octomap::OcTreeStamped(octomap_resolution);
-#if ROS_VERSION_MINIMUM(1,9,0)
-    // Groovy
-    octomap_sub  = n_.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &TaskSpaceRoadmap::octoMapCallback, this);
-
-#elif ROS_VERSION_MINIMUM(1,8,0)
-    // Fuerte
-    octomap_sub  = n_.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &TaskSpaceRoadmap::octoMapCallback, this);
-#endif
 
     // Construct space
     ob::StateSpacePtr space = constructSpace();
@@ -280,7 +272,6 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 
     // Check which side we are planning for
     if (goal_constraint_.position_constraint.link_name.find("right") != std::string::npos){
-        std::cout<<"Swapping"<<std::endl;
         y_min = -y_min;
         y_max = -y_max;
         std::swap(y_min,y_max);
@@ -411,6 +402,12 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
     space->as<ob::RealVectorStateSpace>()->setBounds( bounds );
 }
 
+void TaskSpaceRoadmap::setOctoMap(octomap::OcTreeStamped* octree)
+{
+    delete octomap_;
+    octomap_ = octree;
+    simple_setup_->getSpaceInformation()->setMotionValidator(ompl::base::MotionValidatorPtr(new BoundingBoxMotionValidator(simple_setup_->getSpaceInformation(), octomap_)));
+}
 
 std::vector<std::vector<double> > TaskSpaceRoadmap::shortCutPlanToVector()
 {
@@ -476,78 +473,6 @@ void TaskSpaceRoadmap::printTags()
         ROS_INFO("Vertex number %d has tag %d",vertex_id,vtx.getTag());
     }
 }
-
-/////////////////////////
-////     Private     ////
-/////////////////////////
-
-#if ROS_VERSION_MINIMUM(1,9,0)
-// Groovy
-void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
-{
-    delete octomap_;
-    octomap::AbstractOcTree* tree = octomap_msgs::msgToMap(*msg);
-    if(tree){
-        octomap_ = dynamic_cast<octomap::OcTreeStamped*>(tree);
-        if(!octomap_)
-        {
-            ROS_ERROR("No Octomap created");
-        }
-    }
-    else{
-        ROS_ERROR("Octomap conversion error");
-        exit(1);
-    }
-    simple_setup_->getSpaceInformation()->setMotionValidator(ompl::base::MotionValidatorPtr(new BoundingBoxMotionValidator(simple_setup_->getSpaceInformation(), octomap_)));
-}
-#elif ROS_VERSION_MINIMUM(1,8,0)
-// Fuerte
-void TaskSpaceRoadmap::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
-{
-	delete octomap_;
-	octomap::AbstractOcTree* octree;
-    octree = octomap_msgs::binaryMsgDataToMap(msg->data);
-    std::stringstream datastream;
-    //ROS_INFO("Writing data to stream");
-    octree->writeData(datastream);
-    if (octree) {
-        octomap::OcTreeStamped* octreestamped;
-        octreestamped = new octomap::OcTreeStamped(0.05);
-        //ROS_INFO("Reading data from stream");
-        octreestamped->readData(datastream);
-        //ROS_INFO("Read data from stream");
-        //octreestamped = dynamic_cast<octomap::OcTreeStamped*>(octree);
-        if (!octreestamped){
-            ROS_ERROR("No Octomap created, prm");
-        }
-        else{
-            octomap_ = octreestamped;
-        }
-        delete octree;
-    }
-    else{
-        ROS_ERROR("Octomap conversion error, prm");
-        exit(1);
-    }
-	
-	
-	/*
-    delete octomap_;
-    octomap::OcTree* tree = octomap_msgs::binaryMsgDataToMap(msg->data);
-    if(tree){
-        octomap_ = dynamic_cast<octomap::OcTreeStamped*>(tree);
-        if(!octomap_)
-        {
-            ROS_ERROR("No Octomap created");
-        }
-    }
-    else{
-        ROS_ERROR("Octomap conversion error");
-        exit(1);
-    }
-    */
-}
-#endif
 
 std::vector<double> TaskSpaceRoadmap::getCoordinates( unsigned int vertex_id )
 {

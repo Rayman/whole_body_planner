@@ -3,11 +3,11 @@
 PlanningVisualizer::PlanningVisualizer()
 {
     marker_pub_ = n_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+    markera_pub_ = n_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 1);
 }
 
 PlanningVisualizer::~PlanningVisualizer()
 {
-    // ToDo here we want to delete all the markers which were published
     marker_pub_.shutdown();
 }
 
@@ -15,6 +15,7 @@ void PlanningVisualizer::displayRobot( const std::vector<double> coordinate, boo
 {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
+
     // Set the timestamp.
     marker.header.stamp = ros::Time();
 
@@ -190,7 +191,7 @@ void PlanningVisualizer::displaySamples(ompl::base::PlannerDataPtr planner_data_
     marker.scale.y = 0.01;
     marker.scale.z = 0.01;
 
-    // Declare vector with coordinates of Sample
+    // Declare vector with coordinates of Samplemarkera_pub_
     std::vector<double> this_vertex(3);
 
     // Make line color
@@ -350,4 +351,5 @@ void PlanningVisualizer::interpolateLine( double x1, double y1, double z1, doubl
     // Add colors
     marker->colors.push_back( *color );
 }
+
 
