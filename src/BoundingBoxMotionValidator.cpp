@@ -5,27 +5,27 @@ bool BoundingBoxMotionValidator::checkBoundingBox(const ompl::base::State *state
     /// Convert the state to Real Vector space and check the bounding box
     const ompl::base::RealVectorStateSpace::StateType& coordinate = *state->as<ompl::base::RealVectorStateSpace::StateType>();
 
-    if(!occupanyPoint((double)coordinate[0]+0.02, (double)coordinate[1], (double)coordinate[2]))
+    if(!occupanyPoint((double)coordinate[0]+0.072, (double)coordinate[1], (double)coordinate[2]))
     {
         return false;
     }
 
-    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1]+0.02, (double)coordinate[2]))
+    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1]+0.072, (double)coordinate[2]))
     {
         return false;
     }
 
-    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1]-0.02, (double)coordinate[2]))
+    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1]-0.072, (double)coordinate[2]))
     {
         return false;
     }
 
-    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1], (double)coordinate[2]+0.02))
+    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1], (double)coordinate[2]+0.072))
     {
         return false;
     }
 
-    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1], (double)coordinate[2]-0.02))
+    if(!occupanyPoint((double)coordinate[0], (double)coordinate[1], (double)coordinate[2]-0.072))
     {
         return false;
     }

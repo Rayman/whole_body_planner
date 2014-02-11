@@ -49,8 +49,8 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
     constraints = task_space_roadmap_->convertSolutionToArmTaskGoal();
 
     /// Try to shortcut
-    constraints = task_space_roadmap_->shortCutPlan();
-
+    constraints = task_space_roadmap_->simplifyPlan();
+    //constraints = task_space_roadmap_->smoothPlan();
     ROS_INFO("Constraints: size = %i",(int)constraints.size());
 
     /// At this point only 3D constraints are computed by PlannerGlobal, give goal orientation to the rest of constraints
@@ -83,7 +83,7 @@ bool PlannerGlobal::reComputeConstraints(std::vector<amigo_whole_body_controller
 
 
     /// At this point only 3D constraints are computed by PlannerGlobal, give goal orientation to the rest of constraints
-    setOrientation( constraints);
+    setOrientation(constraints);
     assignImpedance(constraints);
     return true;
 }
@@ -97,14 +97,13 @@ void PlannerGlobal::publishMarkers()
 {
     /// Visualize roadmap and plan
     //std::vector<std::vector<double> > coordinates = task_space_roadmap_->convertSolutionToVector();
-    std::vector<std::vector<double> > coordinates = task_space_roadmap_->shortCutPlanToVector();
+    std::vector<std::vector<double> > coordinates = task_space_roadmap_->convertSolutionToVector();
     visualizer_->displaySamples(task_space_roadmap_->getPlanData());
     visualizer_->displayGraph(task_space_roadmap_->getPlanData());
     visualizer_->displayPath(coordinates,1);
 
-    /*
-    /// Shortcut
 
+    /// Shortcut
     task_space_roadmap_->shortCutPlanToVector();
     coordinates = task_space_roadmap_->convertSolutionToVector();
     visualizer_->displayPath(coordinates,2);
@@ -113,8 +112,6 @@ void PlannerGlobal::publishMarkers()
     task_space_roadmap_->smoothPlanToVector();
     coordinates = task_space_roadmap_->convertSolutionToVector();
     visualizer_->displayPath(coordinates,3);
-
-    */
 
 }
 

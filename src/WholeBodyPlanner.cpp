@@ -45,6 +45,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     // ToDo: don't hardcode
     simulator_.initialize(0.02);
     robot_state_interface_ = new RobotStateInterface();
+
 }
 
 WholeBodyPlanner::~WholeBodyPlanner()
@@ -476,7 +477,6 @@ void WholeBodyPlanner::PublishTrajectory(nav_msgs::Path &trajectory)
 // Groovy
 void WholeBodyPlanner::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
 {
-
         octomap::AbstractOcTree* tree = octomap_msgs::msgToMap(*msg);
         if(tree){
             octomap::OcTreeStamped* octree = dynamic_cast<octomap::OcTreeStamped*>(tree);
@@ -484,8 +484,10 @@ void WholeBodyPlanner::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& ms
                 ROS_ERROR("No Octomap created");
             }
             else{
+                if (planner_==2){
+                    planner_global_.task_space_roadmap_->setOctoMap(octree);
+                }
                 simulator_.collision_avoidance_->setOctoMap(octree);
-                planner_global_.task_space_roadmap_->setOctoMap(octree);
             }
         }
         else{

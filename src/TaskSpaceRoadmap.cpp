@@ -404,7 +404,7 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 
 void TaskSpaceRoadmap::setOctoMap(octomap::OcTreeStamped* octree)
 {
-    delete octomap_;
+   // delete octomap_;
     octomap_ = octree;
     simple_setup_->getSpaceInformation()->setMotionValidator(ompl::base::MotionValidatorPtr(new BoundingBoxMotionValidator(simple_setup_->getSpaceInformation(), octomap_)));
 }
