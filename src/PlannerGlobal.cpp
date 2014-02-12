@@ -57,7 +57,6 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
     setOrientation(constraints);
     assignImpedance(constraints);
 
-
     return true;
 }
 

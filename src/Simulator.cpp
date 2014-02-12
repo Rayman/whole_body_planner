@@ -97,9 +97,9 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
                 //ROS_INFO("Setting %s to %f",iter2->first.c_str(),q_ref_[iter2->second]);
                 wbc_->setMeasuredJointPosition(iter2->first, q_ref_[iter2->second]);
                 //ROS_INFO("Pushing back FK Pose");
-                path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped("/amigo/"+goal_pose.header.frame_id)); // ToDo: remove hack
+                //path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped("/amigo/"+goal_pose.header.frame_id)); // ToDo: remove hack
 
-                geometry_msgs::PoseStamped fk = wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id);
+                //geometry_msgs::PoseStamped fk = wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id);
                 //ROS_INFO("FK tip = [%f\t,%f,\t%f]", fk.pose.position.x, fk.pose.position.y, fk.pose.position.z);
             }
             //std::cout<<"Error x: "<<cartesian_impedance->getError().vel.data[0]<<" y: "<<cartesian_impedance->getError().vel.data[1]<<" z: "<<cartesian_impedance->getError().vel.data[2]<<" r: "<<cartesian_impedance->getError().rot.data[0]<<" p: "<<cartesian_impedance->getError().rot.data[1]<<" y: "<<cartesian_impedance->getError().rot.data[2]<<std::endl;

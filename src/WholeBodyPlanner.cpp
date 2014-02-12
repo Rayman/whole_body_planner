@@ -222,7 +222,8 @@ void WholeBodyPlanner::goalCB()
 void WholeBodyPlanner::goalCBOldLeft()
 {
     ROS_WARN("This action will become deprecated, please convert to the new interface");
-    
+    simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
+
     /// Messages
     const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal = *action_server_old_left_->acceptNewGoal();
     amigo_whole_body_controller::ArmTaskGoal goal;
@@ -269,6 +270,8 @@ void WholeBodyPlanner::goalCBOldLeft()
 void WholeBodyPlanner::goalCBOldRight()
 {
     ROS_WARN("This action will become deprecated, please convert to the new interface");
+
+    simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
 	
 	/// Messages
     const amigo_arm_navigation::grasp_precomputeGoal& grasp_goal = *action_server_old_right_->acceptNewGoal();
@@ -361,6 +364,7 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
         ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",grasp_goal.delta.roll, grasp_goal.delta.pitch, grasp_goal.delta.yaw);
         quat_in.header = grasp_goal.delta.header;
         quat_in.quaternion = tf::createQuaternionMsgFromRollPitchYaw(grasp_goal.delta.roll, grasp_goal.delta.pitch, grasp_goal.delta.yaw);
+        ROS_INFO("Frame IDs are %s and %s %f %f %f %f", point_out.header.frame_id.c_str(), quat_in.header.frame_id.c_str(), quat_in.quaternion.x,quat_in.quaternion.y,quat_in.quaternion.z,quat_in.quaternion.w);
 
         /// Transform to base_link
         ros::Time stamp = ros::Time(0);
@@ -377,11 +381,14 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
         }
 
         // Temp: check frame_ids
-        ROS_INFO("Frame IDs are %s and %s", point_out.header.frame_id.c_str(), quat_out.header.frame_id.c_str());
+        ROS_INFO("Frame IDs are %s and %s %f %f %f %f", point_out.header.frame_id.c_str(), quat_out.header.frame_id.c_str(), quat_out.quaternion.x,quat_out.quaternion.y,quat_out.quaternion.z,quat_out.quaternion.w);
 
         /// Find the pos of end effector
-        KDL::Frame ee_pos = simulator_.getFramePose(goal.position_constraint.link_name);
-        ROS_WARN("EE Position point: x: %f, y: %f, z: %f",ee_pos.p.x() , ee_pos.p.y(), ee_pos.p.z());
+        KDL::Frame frame_map_tip = simulator_.getFramePose(goal.position_constraint.link_name);
+        KDL::Frame frame_map_root = simulator_.getFramePose("base_link");
+        std::cout<<frame_map_root.p.x()<<" "<<frame_map_root.p.y()<<" "<<frame_map_root.p.z()<<" "<<goal.position_constraint.header.frame_id<<std::endl;
+        KDL::Frame ee_pos = frame_map_root.Inverse() * frame_map_tip;
+        ROS_WARN("EE Position point: x: %f, y: %f, z: %f, frame %s and root %s",ee_pos.p.x() , ee_pos.p.y(), ee_pos.p.z(),goal.position_constraint.link_name.c_str(),goal.position_constraint.header.frame_id.c_str());
         point_out.point.x = ee_pos.p.x()    +   point_in.point.x;
         point_out.point.y = ee_pos.p.y()    +   point_in.point.y;
         point_out.point.z = ee_pos.p.z()    +   point_in.point.z;
@@ -391,9 +398,18 @@ bool WholeBodyPlanner::convertGoalType(const amigo_arm_navigation::grasp_precomp
         goal.position_constraint.header         = point_out.header;
         goal.position_constraint.position       = point_out.point;
         goal.orientation_constraint.header      = quat_out.header;
-        goal.orientation_constraint.orientation = quat_out.quaternion;
-        ROS_WARN("Delta Position constraint: x: %f, y: %f, z: %f",goal.position_constraint.position.x, goal.position_constraint.position.y, goal.position_constraint.position.z);
-        ROS_WARN("Delta Position point: x: %f, y: %f, z: %f",point_out.point.x , point_out.point.y, point_out.point.z);
+
+
+        /// Fill in orientation
+        double rotx, roty, rotz, rotw;
+        ee_pos.M.GetQuaternion(rotx, roty, rotz, rotw);
+
+        goal.orientation_constraint.orientation.x = rotx + quat_out.quaternion.x;
+        goal.orientation_constraint.orientation.y = roty + quat_out.quaternion.y;
+        goal.orientation_constraint.orientation.z = rotz + quat_out.quaternion.z;
+        goal.orientation_constraint.orientation.w = rotw + quat_out.quaternion.w;
+
+        ROS_WARN("Delta Position constraint: x: %f, y: %f, z: %f, rotx: %f, roty: %f,rotz: %f,rotw: %f",goal.position_constraint.position.x, goal.position_constraint.position.y, goal.position_constraint.position.z, goal.orientation_constraint.orientation.x,goal.orientation_constraint.orientation.y,goal.orientation_constraint.orientation.z,goal.orientation_constraint.orientation.w);
     }
     else
     {
