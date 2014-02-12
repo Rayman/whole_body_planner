@@ -10,7 +10,7 @@ PlannerGlobal::PlannerGlobal()
     /// Load intermediate (path) and default goal constraint
     XmlRpc::XmlRpcValue default_constraint, intermediate_constraint;
     nh_private.getParam("/whole_body_planner/default_goal_constraint", default_constraint);
-    nh_private.getParam("/whole_body_planner/intermediate_constraint", intermediate_constraint);
+    nh_private.getParam("/whole_body_planner/intermediate_path_constraint", intermediate_constraint);
 
     loadConstraint(default_constraint, default_constraint_);
     loadConstraint(intermediate_constraint, intermediate_constraint_);
@@ -32,7 +32,7 @@ bool PlannerGlobal::computeConstraints(const amigo_whole_body_controller::ArmTas
 
 	if (goal_constraint.goal_type.compare("grasp")==0){
         ROS_INFO("Received grasp goal, removing object pose from STATIC octomap, this should be generalized!");
-        //removeOctomapBBX(goal_constraint.position_constraint.position, goal_constraint.position_constraint.header.frame_id);
+        removeOctomapBBX(goal_constraint.position_constraint.position, goal_constraint.position_constraint.header.frame_id);
     }
 		
     /// Create roadmap and find global path
@@ -97,10 +97,9 @@ void PlannerGlobal::publishMarkers()
     /// Visualize roadmap and plan
     //std::vector<std::vector<double> > coordinates = task_space_roadmap_->convertSolutionToVector();
     std::vector<std::vector<double> > coordinates = task_space_roadmap_->convertSolutionToVector();
-    visualizer_->displaySamples(task_space_roadmap_->getPlanData());
-    visualizer_->displayGraph(task_space_roadmap_->getPlanData());
+    //visualizer_->displaySamples(task_space_roadmap_->getPlanData());
+    //visualizer_->displayGraph(task_space_roadmap_->getPlanData());
     visualizer_->displayPath(coordinates,1);
-
 
     /// Shortcut
     task_space_roadmap_->shortCutPlanToVector();
@@ -169,6 +168,7 @@ void PlannerGlobal::assignImpedance( std::vector<amigo_whole_body_controller::Ar
             constraints_[i].position_constraint.constraint_region_shape.dimensions.push_back(intermediate_constraint_.position_constraint.constraint_region_shape.dimensions[0]);
             constraints_[i].orientation_constraint = intermediate_constraint_.orientation_constraint;
             constraints_[i].stiffness = intermediate_constraint_.stiffness;
+            //constraints_[i].goal_type = 'reset';
         }
 
         /// Final constraint!
@@ -217,7 +217,7 @@ void PlannerGlobal::setBasePose(KDL::Frame base_pose)
     base_pose_ = base_pose;
 }
 
-/*
+
 void PlannerGlobal::removeOctomapBBX(const geometry_msgs::Point& goal, const std::string& root){
 
     if (task_space_roadmap_->octomap_){
@@ -236,13 +236,15 @@ void PlannerGlobal::removeOctomapBBX(const geometry_msgs::Point& goal, const std
             // Set up bounding box dimension
             geometry_msgs::Point bbx_min;
             geometry_msgs::Point bbx_max;
+            
+       
 
-            bbx_max.x = Frame_map_goal.p.x() + 0.05;
+            bbx_max.x = Frame_map_goal.p.x() + 0.051;
             bbx_max.y = Frame_map_goal.p.y() + 0.051;
-            bbx_max.z = Frame_map_goal.p.z() + 0.05;
-            bbx_min.x = Frame_map_goal.p.x() - 0.05;
+            bbx_max.z = Frame_map_goal.p.z() + 0.051;
+            bbx_min.x = Frame_map_goal.p.x() - 0.051;
             bbx_min.y = Frame_map_goal.p.y() - 0.051;
-            bbx_min.z = Frame_map_goal.p.z() - 0.015;
+            bbx_min.z = Frame_map_goal.p.z() - 0.05;
 
             ROS_INFO("Bounding box max: (%f %f %f), min (%f %f %f)",bbx_max.x,bbx_max.y,bbx_max.z,bbx_min.x, bbx_min.y, bbx_min.z );
             octomath::Vector3 min = octomap::pointMsgToOctomap(bbx_min);
@@ -257,4 +259,4 @@ void PlannerGlobal::removeOctomapBBX(const geometry_msgs::Point& goal, const std
         }
     }
 }
-*/
+

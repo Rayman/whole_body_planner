@@ -90,6 +90,7 @@ protected:
       * @param goal: goal definition
       */
     void assignImpedance(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints_);
+    void removeOctomapBBX(const geometry_msgs::Point& goal, const std::string& root);
 
 };
 
