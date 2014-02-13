@@ -236,15 +236,14 @@ void PlannerGlobal::removeOctomapBBX(const geometry_msgs::Point& goal, const std
             // Set up bounding box dimension
             geometry_msgs::Point bbx_min;
             geometry_msgs::Point bbx_max;
-            
-       
+                   
 
-            bbx_max.x = Frame_map_goal.p.x() + 0.051;
-            bbx_max.y = Frame_map_goal.p.y() + 0.051;
-            bbx_max.z = Frame_map_goal.p.z() + 0.051;
-            bbx_min.x = Frame_map_goal.p.x() - 0.051;
-            bbx_min.y = Frame_map_goal.p.y() - 0.051;
-            bbx_min.z = Frame_map_goal.p.z() - 0.05;
+            bbx_max.x = goal.x + 0.051;
+            bbx_max.y = goal.y + 0.051;
+            bbx_max.z = goal.z + 0.051;
+            bbx_min.x = goal.x - 0.051;
+            bbx_min.y = goal.y - 0.051;
+            bbx_min.z = goal.z - 0.05;
 
             ROS_INFO("Bounding box max: (%f %f %f), min (%f %f %f)",bbx_max.x,bbx_max.y,bbx_max.z,bbx_min.x, bbx_min.y, bbx_min.z );
             octomath::Vector3 min = octomap::pointMsgToOctomap(bbx_min);
