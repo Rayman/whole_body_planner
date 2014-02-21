@@ -53,7 +53,7 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
     {
         amigo_whole_body_controller::ArmTaskGoal constraint = *it_constraints;
         ROS_INFO("WBC-Simulator: Checking constraint %i (%s) for feasibility", error_index, constraint.goal_type.c_str());
-        CartesianImpedance* cartesian_impedance = new CartesianImpedance(constraint.position_constraint.link_name);
+        CartesianImpedance* cartesian_impedance = new CartesianImpedance(constraint.position_constraint.link_name, 0.02);//ToDo: don't hardcode!
 
         // Check if there is a motion objective for the frame
         if(wbc_->getCartesianImpedances(constraint.position_constraint.link_name,constraint.position_constraint.header.frame_id).size()>0)
