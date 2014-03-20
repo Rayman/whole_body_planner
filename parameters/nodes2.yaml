@@ -1,0 +1,161 @@
+nodes:
+  - name: "reset"
+    frame_id: "reset"
+    dstNodes:
+      - "prepare_height_grasp"
+    DofConstraints: {x: "free", y: "free", z: "free", roll: "free", pitch: "free", yaw: "free"}
+    absCoords: {x: 0.0, y: 0.0, z: 0.0, roll: 0.0, pitch: 0.0, yaw: 0.0}
+    relCoords: {}
+    offsets: {}
+    positionTolerance: {}
+    orientationTolerance: {}
+    stiffness: {}
+    
+  - name: "prepare_height_grasp" 
+    frame_id: "base_link"
+    dstNodes: 
+      - "reset"
+      - "pre_grasp"
+      - "carry"
+      - "retract"
+    DofConstraints: {x: "static", y: "static", z: "dynamic", roll: "free", pitch: "free", yaw: "free"}
+    absCoords: {x: 0.2, y: 0.2}
+    relCoords: {z: 0.0}
+    offsets: {}
+    positionTolerance: {radius: 1.0, length: 0.05}
+    orientationTolerance: {}
+    stiffness: {x: 15.0, y: 15.0, z: 50.0}
+        
+  - name: "pre_grasp"
+    frame_id: "base_link"
+    dstNodes:
+      - "grasp"
+      - "carry"
+      - "retract"
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {roll: 0.0, pitch: 0.0}
+    relCoords: {x: 0.0, y: 0.0, z: 0.0}
+    offsets: {x: 0.20}
+    positionTolerance: {radius: 0.04, length: 0.03}
+    orientationTolerance: {roll: 0.087, pitch: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+        
+  - name: "grasp"
+    frame_id: "base_link"
+    dstNodes:
+      - "lift"
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {roll: 0.0, pitch: 0.0}
+    relCoords: {x: 0.0, y: 0.0, z: 0.0}
+    offsets: {}
+    positionTolerance: {radius: 0.04, length: 0.03}
+    orientationTolerance: {roll: 0.087, pitch: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+        
+  - name: "lift"
+    frame_id: "base_link"
+    dstNodes: 
+      - "carry"
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {roll: 0.0, pitch: 0.0}
+    relCoords: {x: 0.0, y: 0.0, z: 0.10}
+    offsets: {}
+    positionTolerance: {radius: 0.1, length: 0.03}
+    orientationTolerance: {roll: 0.087, pitch: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    
+  - name: "carry" 
+    frame_id: "base_link"
+    dstNodes: 
+      - "prepare_height_drop"
+      - "hand_over"
+    DofConstraints: {x: "static", y: "static", z: "free", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {x: 0.265, y: 0.2, roll: 0.0, pitch: 0.0}
+    relCoords: {}
+    offsets: {}
+    positionTolerance: {radius: 0.05, length: 2.0}
+    orientationTolerance: {roll: 0.1, pitch: 0.1}
+    stiffness: {x: 30.0, y: 30.0, roll: 5.0, pitch: 5.0}
+    
+  - name: "prepare_height_drop" 
+    frame_id: "base_link"
+    dstNodes: 
+      - "carry"
+      - "pre_drop"
+    DofConstraints: {x: "static", y: "static", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {x: 0.265, y: 0.2, roll: 0.0, pitch: 0.0}
+    relCoords: {z: 0.0}
+    offsets: {}
+    positionTolerance: {radius: 1.0, length: 0.05}
+    orientationTolerance: {roll: 0.087, pitch: 0.087}
+    stiffness: {x: 30.0, y: 30.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    
+  - name: "pre_drop"
+    frame_id: "base_link"
+    dstNodes: 
+      - "carry"
+      - "drop"
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {roll: 0.0, pitch: 0.0}
+    relCoords: {x: 0.0, y: 0.0, z: 0.10}
+    offsets: {}
+    positionTolerance: {radius: 0.1, length: 0.03}
+    orientationTolerance: {roll: 0.087, pitch: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    
+  - name: "drop"
+    frame_id: "base_link"
+    dstNodes: 
+      - "carry"
+      - "retract"
+    DofConstraints: {x: "dynamic", y: "dynamic", z: "dynamic", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {roll: 0.0, pitch: 0.0}
+    relCoords: {x: 0.0, y: 0.0, z: 0.0}
+    offsets: {}
+    positionTolerance: {radius: 0.1, length: 0.03}
+    orientationTolerance: {roll: 0.087, pitch: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+    
+  - name: "retract" 
+    frame_id: "base_link"
+    dstNodes: 
+      - "reset"
+      - "prepare_height_grasp"
+      - "prepare_height_drop"
+      - "carry"
+    DofConstraints: {x: "static", y: "static", z: "free", roll: "free", pitch: "free", yaw: "free"}
+    absCoords: {x: 0.265, y: 0.2}
+    relCoords: {}
+    offsets: {}
+    positionTolerance: {radius: 0.05, length: 2.0}
+    orientationTolerance: {}
+    stiffness: {x: 65.0, y: 65.0}
+    
+  - name: "hand_over" 
+    frame_id: "base_link"
+    dstNodes: 
+      - "retract"
+    DofConstraints: {x: "static", y: "static", z: "static", roll: "static", pitch: "static", yaw: "free"}
+    absCoords: {x: 0.6, y: 0.2, z: 0.95, roll: 0.0, pitch: 0.0}
+    relCoords: {}
+    offsets: {}
+    positionTolerance: {radius: 0.1, length: 2.0}
+    orientationTolerance: {roll: 0.087, pitch: 0.087}
+    stiffness: {x: 65.0, y: 65.0, z: 50.0, roll: 5.0, pitch: 5.0}
+
+### From RoboCup
+#Point forward (JointGoal)
+#Point backward (JG)
+#Hold tray pose (JG)
+#Support person pose (JG)
+#Reset pose (JG)
+#Handover pose
+#Pre_position (for placing objects)
+#Position
+#Retract
+#Human handover (JG)
+#Pre_poor (=pre_grasp)
+#Poor
+
+### Ideas from Wiki
+#Opening/closing doors/drawers
