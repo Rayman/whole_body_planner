@@ -29,13 +29,29 @@ if __name__ == '__main__':
     rospy.init_node('add_motion_objective')
     #/whole_body_planner/motion_constraint/goal
     rospy.loginfo("Node initialized")
+    
+    tf_listener = tf.TransformListener()
+    
     move_arm = actionlib.SimpleActionClient("/whole_body_planner/motion_constraint", ArmTaskAction)
     move_arm.wait_for_server()
     rospy.loginfo("Connected to action server")
     
     marker_pub = rospy.Publisher('/visualization_marker', Marker)
     
-    link_name = "grippoint_left"
+    # Target in map frame
+    map_pose = geometry_msgs.msg.PoseStamped()
+    map_pose.header.frame_id = "/map"
+    map_pose.header.stamp = rospy.Time()
+    map_pose.pose.position.x = float(sys.argv[1])
+    map_pose.pose.position.y = float(sys.argv[2])
+    map_pose.pose.position.z = float(sys.argv[3])
+    map_pose.pose.orientation = euler_z_to_quaternion(float(sys.argv[4]),float(sys.argv[5]),float(sys.argv[6]))
+    
+    # Transform to base_link
+    tf_listener.waitForTransform("/map", "/amigo/base_link", rospy.Time(), rospy.Duration(2.0))
+    baselink_pose = tf_listener.transformPose("/amigo/base_link", map_pose)
+    
+    rospy.loginfo("Goal pose map = {0}".format(baselink_pose))   
 
     goal = ArmTaskGoal()
     #rospy.loginfo(goal)
@@ -43,30 +59,28 @@ if __name__ == '__main__':
     goal.goal_type = sys.argv[7]
     position_constraint = PositionConstraint()
     position_constraint.header.frame_id = "base_link"
-    position_constraint.link_name = link_name
+    position_constraint.link_name = "grippoint_left"
     position_constraint.target_point_offset.x = 0.0
     position_constraint.target_point_offset.y = 0.0
     position_constraint.target_point_offset.z = 0.0
-    position_constraint.position.x = float(sys.argv[1])
-    position_constraint.position.y = float(sys.argv[2])
-    position_constraint.position.z = float(sys.argv[3])
+    position_constraint.position = baselink_pose.pose.position
     goal.position_constraint = position_constraint
     rospy.logwarn("Position constraint region shapes etc. not yet defined")
     
     orientation_constraint = OrientationConstraint()
     orientation_constraint.header.frame_id = "base_link"
-    orientation_constraint.link_name = link_name
-    orientation_constraint.orientation = euler_z_to_quaternion(float(sys.argv[4]),float(sys.argv[5]),float(sys.argv[6]))
+    orientation_constraint.link_name = "grippoint_left"
+    orientation_constraint.orientation = baselink_pose.pose.orientation
     goal.orientation_constraint = orientation_constraint
     rospy.loginfo("Type link or header not yet taken into account")
     rospy.logwarn("Orientation constraint tolerances etc not yet defined")
 
-    goal.stiffness.force.x = 120.0
-    goal.stiffness.force.y = 120.0
-    goal.stiffness.force.z = 100.0
-    goal.stiffness.torque.x = 5.0
-    goal.stiffness.torque.y = 5.0
-    goal.stiffness.torque.z = 5.0
+    goal.stiffness.force.x = 70.0
+    goal.stiffness.force.y = 60.0
+    goal.stiffness.force.z = 50.0
+    goal.stiffness.torque.x = 2.0
+    goal.stiffness.torque.y = 2.0
+    goal.stiffness.torque.z = 2.0
         
     rospy.loginfo(goal)
     
@@ -76,12 +90,12 @@ if __name__ == '__main__':
     goal_marker.type = 0 # Arrow
     goal_marker.pose.position = goal.position_constraint.position
     goal_marker.pose.orientation = goal.orientation_constraint.orientation
-    goal_marker.scale.x = 0.5
-    goal_marker.scale.y = 0.5
-    goal_marker.scale.z = 0.2
-    goal_marker.color.r = 1.0
+    goal_marker.scale.x = 0.2
+    goal_marker.scale.y = 0.05
+    goal_marker.scale.z = 0.05
+    goal_marker.color.r = 0.0
     goal_marker.color.g = 0.0
-    goal_marker.color.b = 0.0
+    goal_marker.color.b = 1.0
     goal_marker.color.a = 1.0
     goal_marker.lifetime = rospy.Duration(5.0)
 
@@ -89,7 +103,7 @@ if __name__ == '__main__':
 
     ctr = 0;
     while (not rospy.is_shutdown() and ctr < 10):
-        #marker_pub.publish(goal_marker)
+        marker_pub.publish(goal_marker)
         rospy.sleep(rospy.Duration(0.1))
         ctr = ctr + 1
         rospy.sleep(0.02)
