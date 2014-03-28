@@ -104,7 +104,8 @@ protected:
     /**
       * Path message containing trajectory
       */
-    nav_msgs::Path path_;
+    //nav_msgs::Path path_;
+    visualization_msgs::MarkerArray path_;
 
     void PublishMarkers(const amigo_whole_body_controller::ArmTaskGoal &constraint, bool result);
 

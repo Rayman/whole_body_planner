@@ -8,6 +8,7 @@ from arm_navigation_msgs.msg import *
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker
+from std_msgs.msg import String
 #from amigo_arm_navigation.msg._grasp_precomputeGoal import grasp_precomputeGoal
 #from amigo_arm_navigation.msg._grasp_precomputeAction import grasp_precomputeAction
 
@@ -32,6 +33,8 @@ if __name__ == '__main__':
     move_arm = actionlib.SimpleActionClient("/whole_body_planner/motion_constraint", ArmTaskAction)
     move_arm.wait_for_server()
     rospy.loginfo("Connected to action server")
+    
+    speech_pub = rospy.Publisher('/text_to_speech/input', String)
     
     marker_pub = rospy.Publisher('/visualization_marker', Marker)
     
@@ -86,6 +89,14 @@ if __name__ == '__main__':
     goal_marker.lifetime = rospy.Duration(5.0)
 
     rospy.loginfo(goal_marker)
+    
+    rospy.sleep(5.0)
+    
+    sentence = String()
+    sentence.data = "Let's go"
+    speech_pub.publish(sentence)
+    
+    rospy.sleep(2.0)
 
     ctr = 0;
     while (not rospy.is_shutdown() and ctr < 10):
@@ -95,6 +106,7 @@ if __name__ == '__main__':
         rospy.sleep(0.02)
         
     #actionClients.move_arm.send_goal_and_wait(goal, rospy.Duration(time_out))
+    
     result = move_arm.send_goal_and_wait(goal, rospy.Duration(1.0))
     rospy.loginfo("Result = {0}".format(result))
     

@@ -51,6 +51,9 @@ protected:
 
     /** Publishes the connectivity graph as a marker array */
     void displayConnectivityGraph();
+    
+    /** Publishes the various constraints as markers with edges in between */
+    void displayConstraints(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
 };
 

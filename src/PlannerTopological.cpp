@@ -9,7 +9,7 @@ PlannerTopological::PlannerTopological()
 
     /// Marker array publisher
     ros::NodeHandle n("~");
-    marker_array_pub_ = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 1);
+    marker_array_pub_ = n.advertise<visualization_msgs::MarkerArray>("topological_motion_constraints", 1);
     ROS_INFO("Initialized plannertopological");
 }
 
@@ -26,13 +26,15 @@ bool PlannerTopological::computeConstraints(const amigo_whole_body_controller::A
     /// Update the connectivitygraph according to the goal
     connectivity_graph_.updateGraph(goal_constraint);
 
-    displayConnectivityGraph();
+    //displayConnectivityGraph();
 
     /// Get a path from this goal
     ROS_WARN("Planning from %s to %s", current_state_.c_str(), goal_constraint.goal_type.c_str());
     constraints = connectivity_graph_.getPlan(current_state_,goal_constraint.goal_type);
 
     ROS_DEBUG("Constraints: size = %i",(int)constraints.size());
+    
+    displayConstraints(constraints);
 
     std::vector<amigo_whole_body_controller::ArmTaskGoal>::iterator iter = constraints.begin();
     constraints.erase(iter);
@@ -90,6 +92,58 @@ void PlannerTopological::displayConnectivityGraph()
         }
     }
     marker_array_pub_.publish(marker_array);
+}
+
+void PlannerTopological::displayConstraints(std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints) {
+	
+	/// Initialize message
+    visualization_msgs::MarkerArray marker_array;
+	
+	for (unsigned int i = 0; i < constraints.size(); i++) {
+		
+		/// Nodes
+		visualization_msgs::Marker marker;
+		marker.header.stamp = ros::Time::now();
+		marker.header.frame_id = "/amigo/"+constraints[i].position_constraint.header.frame_id;
+		marker.id = i+1234;
+		marker.type = 2;//sphere
+		marker.scale.x = 0.05;
+		marker.scale.y = 0.05;
+		marker.scale.z = 0.05;
+		marker.color.b = 1.0;
+		marker.color.a = 1.0;
+		marker.lifetime = ros::Duration(200.0);
+		marker.pose.position.x = constraints[i].position_constraint.position.x;
+		marker.pose.position.y = constraints[i].position_constraint.position.y;
+		marker.pose.position.z = constraints[i].position_constraint.position.z;
+		
+		marker_array.markers.push_back(marker);
+		
+		/// Edges
+		if (i > 0) {
+			visualization_msgs::Marker edgemarker;
+            edgemarker.header.stamp = ros::Time::now();
+            edgemarker.header.frame_id = "/amigo/"+constraints[i].position_constraint.header.frame_id;
+            //marker.ns = "planner_topological";
+            edgemarker.id = i+234;
+            edgemarker.type = visualization_msgs::Marker::ARROW;
+            edgemarker.action = visualization_msgs::Marker::ADD;
+            edgemarker.color.a = 1.0;
+            edgemarker.color.r = 0.0;
+            edgemarker.color.g = 0.0;
+            edgemarker.color.b = 1.0;
+            edgemarker.scale.x = 0.01;
+            edgemarker.lifetime = ros::Duration(5.0);
+            edgemarker.points.push_back(constraints[i-1].position_constraint.position);
+            edgemarker.points.push_back(constraints[i].position_constraint.position);
+
+            /// Add marker to array
+            //marker_array.markers.push_back(edgemarker);
+		}
+		
+	}
+	
+	marker_array_pub_.publish(marker_array);
 }
 
 void PlannerTopological::setCurrentState(const std::string &current_state) {

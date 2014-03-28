@@ -29,7 +29,7 @@ void Simulator::initialize(const double Ts)
     qdot_ref_.setZero();
     joint_name_to_index_ = wbc_->getJointNameToIndex();
     marker_pub_ = n_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
-    trajectory_pub_ = n_.advertise<nav_msgs::Path>("path", 1);
+    trajectory_pub_ = n_.advertise<visualization_msgs::MarkerArray>("path", 1);
 
 }
 
@@ -46,8 +46,10 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
     // Set stuff to zero and initialize
     //ROS_INFO("WBC-Simulator: Starting feasibility check");
     error_index = 0;
-    path_.header.frame_id = constraints[0].position_constraint.header.frame_id;
-    path_.poses.resize(0);
+    //path_.header.frame_id = constraints[0].position_constraint.header.frame_id;
+    //path_.header.frame_id = "/map";
+    path_.markers.resize(0);
+    unsigned int marker_counter = 123;
 
     for(std::vector<amigo_whole_body_controller::ArmTaskGoal>::const_iterator it_constraints = constraints.begin(); it_constraints != constraints.end(); ++it_constraints)
     {
@@ -97,6 +99,25 @@ bool Simulator::checkFeasibility(const std::vector<amigo_whole_body_controller::
                 //ROS_INFO("Setting %s to %f",iter2->first.c_str(),q_ref_[iter2->second]);
                 wbc_->setMeasuredJointPosition(iter2->first, q_ref_[iter2->second]);
                 //ROS_INFO("Pushing back FK Pose");
+                //KDL::Frame fk = wbc_->robot_state_.getFK(goal_pose.header.frame_id);
+                KDL::Frame fk = wbc_->robot_state_.getFK("grippoint_left");
+                visualization_msgs::Marker fkmsg;
+                fkmsg.header.frame_id = "/map";
+                fkmsg.header.stamp = ros::Time::now();
+                fkmsg.header.seq = iter;
+                fkmsg.id = marker_counter;++marker_counter;
+                fkmsg.type = 2; //
+                fkmsg.pose.position.x = fk.p.x();
+                fkmsg.pose.position.y = fk.p.y();
+                fkmsg.pose.position.z = fk.p.z();
+                fkmsg.pose.orientation.w = 1.0;
+                fkmsg.color.r = 1.0;
+                fkmsg.color.a = 1.0;
+                fkmsg.lifetime = ros::Duration(200.0);
+                fkmsg.scale.x = 0.05;
+                fkmsg.scale.y = 0.05;
+                fkmsg.scale.z = 0.05;
+                path_.markers.push_back(fkmsg);
                 //path_.poses.push_back(wbc_->robot_state_.getFKPoseStamped("/amigo/"+goal_pose.header.frame_id)); // ToDo: remove hack
 
                 //geometry_msgs::PoseStamped fk = wbc_->robot_state_.getFKPoseStamped(goal_pose.header.frame_id);
@@ -159,7 +180,10 @@ bool Simulator::setInitialJointConfiguration(const std::map<std::string,double>&
 
 nav_msgs::Path Simulator::getPath()
 {
-    return path_;
+    // ToDo: fix --> make MarkerArray
+    //return path_;
+    nav_msgs::Path path;
+    return path;
 }
 
 KDL::Frame Simulator::getFramePose(const std::string& frame_name)
