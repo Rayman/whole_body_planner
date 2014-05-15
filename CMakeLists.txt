@@ -9,12 +9,6 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 set(ROS_BUILD_TYPE Release)
 
-find_package(octomap 1.5 REQUIRED)
-include_directories(BEFORE ${OCTOMAP_INCLUDE_DIRS})
-link_directories(${OCTOMAP_LIBRARY_DIRS})
-link_libraries(${OCTOMAP_LIBRARY_DIRS}/liboctomap.so ${OCTOMAP_LIBRARY_DIRS}/liboctomath.so)
-MESSAGE(STATUS "OctoMap paths:" ${OCTOMAP_INCLUDE_DIRS} " " ${OCTOMAP_LIBRARY_DIRS})
-
 file(GLOB_RECURSE HEADER_FILES include/*.h)
 rosbuild_init()
 

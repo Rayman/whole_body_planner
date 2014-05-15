@@ -12,7 +12,7 @@
   <depend package="amigo_whole_body_controller"/>
   <depend package="amigo_arm_navigation"/>
   <depend package="visualization_msgs"/>
-
+  <depend package="octomap"/>
 </package>
 
 
