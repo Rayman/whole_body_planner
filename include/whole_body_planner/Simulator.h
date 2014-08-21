@@ -11,8 +11,8 @@
 #include <amigo_whole_body_controller/ArmTaskGoal.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-// Map
-#include <tue_map_3d/Map3D.h>
+
+#include <visualization_msgs/MarkerArray.h>
 
 class Simulator
 {
@@ -70,13 +70,13 @@ public:
     /**
       * Virtual Collision avoidance object
       */
-    CollisionAvoidance* collision_avoidance_;
+    wbc::CollisionAvoidance* collision_avoidance_;
 
 
     /**
       * Virtual Collision avoidance object
       */
-    void loadParameterFiles(CollisionAvoidance::collisionAvoidanceParameters &ca_param);
+    void loadParameterFiles(wbc::CollisionAvoidance::collisionAvoidanceParameters &ca_param);
 
 protected:
 

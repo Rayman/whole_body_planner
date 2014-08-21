@@ -1,4 +1,7 @@
 #include "whole_body_planner/PlannerGlobal.h"
+
+#include <octomap_ros/conversions.h>
+
 PlannerGlobal::PlannerGlobal()
 {
     /// Setup planning object

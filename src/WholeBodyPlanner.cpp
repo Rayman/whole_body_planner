@@ -1,5 +1,7 @@
 #include "whole_body_planner/WholeBodyPlanner.h"
 
+#include <octomap_msgs/conversions.h>
+
 WholeBodyPlanner::WholeBodyPlanner()
 {
 

@@ -10,7 +10,8 @@
 #include "ompl/base/MotionValidator.h"
 #include "ompl/base/SpaceInformation.h"
 #include <ompl/base/spaces/SE3StateSpace.h>
-#include "tue_map_3d/Map3D.h"
+
+#include <octomap/OcTreeStamped.h>
 
 
 

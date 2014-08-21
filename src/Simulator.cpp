@@ -14,10 +14,10 @@ void Simulator::initialize(const double Ts)
 {
     wbc_ = new WholeBodyController(Ts);
 
-    CollisionAvoidance::collisionAvoidanceParameters ca_param;
+    wbc::CollisionAvoidance::collisionAvoidanceParameters ca_param;
     loadParameterFiles(ca_param);
 
-    collision_avoidance_ = new CollisionAvoidance(ca_param, Ts);
+    collision_avoidance_ = new wbc::CollisionAvoidance(ca_param, Ts);
     if (!wbc_->addMotionObjective(collision_avoidance_)) {
         ROS_ERROR("Could not initialize collision avoidance");
         exit(-1);
@@ -281,7 +281,7 @@ void Simulator::transformToRoot(std::vector<amigo_whole_body_controller::ArmTask
 
 }
 
-void Simulator::loadParameterFiles(CollisionAvoidance::collisionAvoidanceParameters &ca_param)
+void Simulator::loadParameterFiles(wbc::CollisionAvoidance::collisionAvoidanceParameters &ca_param)
 {
     ros::NodeHandle n("~");
     std::string ns = ros::this_node::getName();

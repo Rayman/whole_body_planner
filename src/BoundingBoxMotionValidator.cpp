@@ -1,5 +1,7 @@
 #include "whole_body_planner/BoundingBoxMotionValidator.h"
 
+#include <queue>
+
 bool BoundingBoxMotionValidator::checkBoundingBox(const ompl::base::State *state) const{
 
     /// Convert the state to Real Vector space and check the bounding box

@@ -38,7 +38,7 @@
 #include <kdl/frames.hpp>
 
 // Map
-#include <tue_map_3d/Map3D.h>
+#include <octomap_msgs/Octomap.h>
 
 #include <fstream>
 
