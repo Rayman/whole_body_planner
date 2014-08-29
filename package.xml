@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<package>
+  <name>whole_body_planner</name>
+  <version>0.0.0</version>
+  <description>The whole_body_planner package</description>
+
+  <maintainer email="j.j.m.lunenburg@tue.nl">Janno Lunenburg</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>actionlib</build_depend>
+  <build_depend>amigo_arm_navigation</build_depend>
+  <build_depend>amigo_whole_body_controller</build_depend>
+  <build_depend>arm_navigation_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>octomap_ros</build_depend>
+  <build_depend>ompl</build_depend>
+  <build_depend>orocos_kdl</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+
+  <run_depend>actionlib</run_depend>
+  <run_depend>amigo_arm_navigation</run_depend>
+  <run_depend>amigo_whole_body_controller</run_depend>
+  <run_depend>arm_navigation_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>octomap_ros</run_depend>
+  <run_depend>ompl</run_depend>
+  <run_depend>orocos_kdl</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+
+</package>
