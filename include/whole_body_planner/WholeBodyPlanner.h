@@ -137,7 +137,7 @@ protected:
     /**
       * Action server for old interface (left)
       */
-    actionlib::SimpleActionServer<tue_manipulation::grasp_precomputeAction>* action_server_old_left_;
+    actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>* action_server_old_left_;
 
     /**
       * Callback function for old interface (left)
@@ -147,7 +147,7 @@ protected:
     /**
       * Action server for old interface (right)
       */
-    actionlib::SimpleActionServer<tue_manipulation::grasp_precomputeAction>* action_server_old_right_;
+    actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>* action_server_old_right_;
 
     /**
       * Callback function for old interface (left)
@@ -157,7 +157,7 @@ protected:
     /**
       * Converts grasp-precompute goal to motion constraint
       */
-    bool convertGoalType(const tue_manipulation::grasp_precomputeGoal &grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal);
+    bool convertGoalType(const tue_manipulation::GraspPrecomputeGoal &grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal);
 
     /**
       * tf listener (required for delta goals)

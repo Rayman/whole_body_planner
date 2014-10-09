@@ -14,11 +14,11 @@ WholeBodyPlanner::WholeBodyPlanner()
     action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this));
     action_server_->start();
 
-    action_server_old_left_ = new actionlib::SimpleActionServer<tue_manipulation::grasp_precomputeAction>(nh_private, "/grasp_precompute_left", false);
+    action_server_old_left_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh_private, "/grasp_precompute_left", false);
     action_server_old_left_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldLeft, this));
     action_server_old_left_->start();
 
-    action_server_old_right_ = new actionlib::SimpleActionServer<tue_manipulation::grasp_precomputeAction>(nh_private, "/grasp_precompute_right", false);
+    action_server_old_right_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh_private, "/grasp_precompute_right", false);
     action_server_old_right_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldRight, this));
     action_server_old_right_->start();
 
@@ -227,7 +227,7 @@ void WholeBodyPlanner::goalCBOldLeft()
     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
 
     /// Messages
-    const tue_manipulation::grasp_precomputeGoal& grasp_goal = *action_server_old_left_->acceptNewGoal();
+    const tue_manipulation::GraspPrecomputeGoal& grasp_goal = *action_server_old_left_->acceptNewGoal();
     amigo_whole_body_controller::ArmTaskGoal goal;
     
 	/// Set link names
@@ -276,7 +276,7 @@ void WholeBodyPlanner::goalCBOldRight()
     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
 	
 	/// Messages
-    const tue_manipulation::grasp_precomputeGoal& grasp_goal = *action_server_old_right_->acceptNewGoal();
+    const tue_manipulation::GraspPrecomputeGoal& grasp_goal = *action_server_old_right_->acceptNewGoal();
     amigo_whole_body_controller::ArmTaskGoal goal;
 
 	/// Set link names
@@ -317,7 +317,7 @@ void WholeBodyPlanner::goalCBOldRight()
     }
 }
 
-bool WholeBodyPlanner::convertGoalType(const tue_manipulation::grasp_precomputeGoal& grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal)
+bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGoal& grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal)
 {
 
     /// Check for absolute or delta (and ambiguous goals)
