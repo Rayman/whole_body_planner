@@ -8,11 +8,15 @@
 #define SIMULATOR_H
 
 #include <WholeBodyController.h>
+#include <amigo_whole_body_controller/motionobjectives/CollisionAvoidance.h>
 #include <amigo_whole_body_controller/ArmTaskGoal.h>
 #include <nav_msgs/Path.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
 
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <visualization_msgs/MarkerArray.h>
+
+#include <ros/publisher.h>
+#include <ros/node_handle.h>
 
 class Simulator
 {

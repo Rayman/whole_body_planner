@@ -1,5 +1,8 @@
 #include "whole_body_planner/Simulator.h"
 
+#include <amigo_whole_body_controller/motionobjectives/CartesianImpedance.h>
+#include <ros/this_node.h>
+
 Simulator::Simulator()
 {
 
