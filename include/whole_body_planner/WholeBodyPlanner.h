@@ -9,7 +9,7 @@
 
 #include <amigo_whole_body_controller/ArmTaskAction.h>
 #include <actionlib/server/simple_action_server.h>
-#include <tue_manipulation/grasp_precomputeAction.h>
+#include <tue_manipulation/GraspPrecomputeAction.h>
 
 /// Messages
 #include <nav_msgs/Path.h>
