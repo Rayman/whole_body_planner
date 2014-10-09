@@ -49,7 +49,10 @@ add_library(taskspaceroadmap
   src/VisibilityBasedValidStateSampler.cpp
   src/BoundingBoxMotionValidator.cpp
 )
-# target_link_libraries(taskspaceroadmap ${OMPL_LIBRARIES})
+target_link_libraries(taskspaceroadmap
+  ${catkin_LIBRARIES}
+  ${OMPL_LIBRARIES}
+)
 
 add_library(whole_body_planner
   src/WholeBodyPlanner.cpp
@@ -61,12 +64,17 @@ add_library(whole_body_planner
   src/PlannerGlobal.cpp
   src/Simulator.cpp
 )
+target_link_libraries(whole_body_planner
+  taskspaceroadmap
+  ${catkin_LIBRARIES}
+)
 
-add_executable(whole_body_planner_node src/whole_body_planner_node.cpp)
+add_executable(whole_body_planner_node
+  src/whole_body_planner_node.cpp
+)
 
 target_link_libraries(whole_body_planner_node
   whole_body_planner
-  ${catkin_LIBRARIES}
 )
 
 # add_dependencies(whole_body_planner_node whole_body_planner_generate_messages_cpp)
