@@ -11,7 +11,7 @@
     
 	<rosparam file="$(find whole_body_planner)/parameters/nodes2.yaml" command="load" ns="whole_body_planner"/>
 	
-	<node pkg="whole_body_planner" type="whole_body_planner" name="whole_body_planner" respawn="false" output="screen">
+	<node pkg="whole_body_planner" type="whole_body_planner_node" name="whole_body_planner" respawn="false" output="screen">
 		<param name="planner_type" value="$(arg planner)" />
 		<rosparam file="$(find amigo_whole_body_controller)/parameters/collision_model.yaml" command="load"/>
 		<rosparam file="$(find amigo_whole_body_controller)/parameters/collision_avoidance.yaml" command="load"/>
