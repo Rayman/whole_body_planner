@@ -43,6 +43,13 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+# show the headers in qtcreator
+file(GLOB HEADERS
+  RELATIVE ${PROJECT_SOURCE_DIR} "include/*.h"
+  RELATIVE ${PROJECT_SOURCE_DIR} "include/*/*.h"
+  RELATIVE ${PROJECT_SOURCE_DIR} "include/*/*/*.h"
+)
+
 add_library(taskspaceroadmap
   src/TaskSpaceRoadmap.cpp
   src/PlanningVisualizer.cpp
@@ -63,6 +70,7 @@ add_library(whole_body_planner
   src/ConnectivityGraph.cpp
   src/PlannerGlobal.cpp
   src/Simulator.cpp
+  ${HEADERS}
 )
 target_link_libraries(whole_body_planner
   taskspaceroadmap
