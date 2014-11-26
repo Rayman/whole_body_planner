@@ -64,6 +64,7 @@ target_link_libraries(taskspaceroadmap
 add_library(whole_body_planner
   src/WholeBodyPlanner.cpp
   src/Executer.cpp
+  src/Executer2.cpp
   src/RobotStateInterface.cpp
   src/PlannerEmpty.cpp
   src/PlannerTopological.cpp
