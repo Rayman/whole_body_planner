@@ -2,6 +2,7 @@
 #define EXECUTER2_H
 
 #include <amigo_whole_body_controller/ArmTaskAction.h>
+#include <actionlib/client/action_client.h>
 
 class Executer2
 {
@@ -21,6 +22,12 @@ public:
 protected:
     std::string current_state_;
 
+    typedef actionlib::ActionClient<amigo_whole_body_controller::ArmTaskAction> ArmTaskClient;
+    ArmTaskClient wbc_client;
+
+    void feedback_cb(ArmTaskClient::GoalHandle goal_handle, const amigo_whole_body_controller::ArmTaskFeedbackConstPtr &feedback);
+
+    void transition_cb(ArmTaskClient::GoalHandle goal_handle);
 };
 
 #endif // EXECUTER2_H
