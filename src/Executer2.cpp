@@ -19,9 +19,21 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
         ros::Time start_time = ros::Time::now();
         ROS_INFO("Sending goal...");
 
-        ArmTaskClient::GoalHandle handle = wbc_client.sendGoal(goal,
+        std::string frame_id = goal.position_constraint.header.frame_id;
+        std::string link_name = goal.position_constraint.link_name;
+        goal_key key = std::make_pair(frame_id, link_name);
+
+        ArmTaskClient::GoalHandle handle = goal_map[key];
+
+        if (!handle.isExpired()) {
+            handle.cancel(); // cancel if there was a previous goal
+        }
+
+        handle = wbc_client.sendGoal(goal,
                             boost::bind(&Executer2::transition_cb, this, _1),
                             boost::bind(&Executer2::feedback_cb,   this, _1, _2));
+
+        goal_map[key] = handle; // save handle to keep goals active
 
         is_done_ = false;
         while (ros::ok() && !is_done_ && (ros::Time::now() - start_time) < ros::Duration(40.0)) {
@@ -30,7 +42,11 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
         }
 
         if (is_done_) {
-            handle.cancel();
+            // only on the last constraint, don't cancel
+            if ((it+1) != constraints.end()) {
+                handle.cancel();
+            }
+
             ROS_INFO("Constraint %d is valid", ++i);
             current_state_ = goal.goal_type;
         } else {
@@ -65,6 +81,8 @@ void Executer2::feedback_cb(ArmTaskClient::GoalHandle goal_handle, const amigo_w
 void Executer2::transition_cb(ArmTaskClient::GoalHandle goal_handle)
 {
     ROS_INFO("transition_cb: %s", goal_handle.getCommState().toString().c_str());
+
+    // TODO: cleanup old handles
 }
 
 std::string Executer2::getCurrentState()

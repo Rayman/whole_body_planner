@@ -36,6 +36,13 @@ protected:
 
     void transition_cb(ArmTaskClient::GoalHandle goal_handle);
 
+    /**
+     * Keep a map from /frame+/link_name to the corresponding goal handle.
+     * This will be used to cancel previous goals with the same key
+     */
+    typedef std::pair<std::string, std::string> goal_key;
+    std::map<goal_key, ArmTaskClient::GoalHandle> goal_map;
+
     ros::Rate rate;
     bool is_done_;
 };
