@@ -4,6 +4,13 @@
 #include <amigo_whole_body_controller/ArmTaskAction.h>
 #include <actionlib/client/action_client.h>
 
+namespace wbc_codes {
+    enum {
+        AT_GOAL_POSE = amigo_whole_body_controller::WholeBodyControllerStatus::AT_GOAL_POSE,
+        MOVING_TO_GOAL_POSE = amigo_whole_body_controller::WholeBodyControllerStatus::MOVING_TO_GOAL_POSE
+    };
+}
+
 class Executer2
 {
 public:
@@ -28,6 +35,9 @@ protected:
     void feedback_cb(ArmTaskClient::GoalHandle goal_handle, const amigo_whole_body_controller::ArmTaskFeedbackConstPtr &feedback);
 
     void transition_cb(ArmTaskClient::GoalHandle goal_handle);
+
+    ros::Rate rate;
+    bool is_done_;
 };
 
 #endif // EXECUTER2_H
