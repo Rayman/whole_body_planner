@@ -37,10 +37,17 @@ protected:
     void transition_cb(ArmTaskClient::GoalHandle goal_handle);
 
     /**
+     * This handle is currently being worked on by Execute
+     * It will be used by feedback_cb to determine if it's finished
+     */
+    ArmTaskClient::GoalHandle active_handle;
+
+    /**
      * Keep a map from /frame+/link_name to the corresponding goal handle.
      * This will be used to cancel previous goals with the same key
      */
     typedef std::pair<std::string, std::string> goal_key;
+    goal_key make_key(std::string frame_id, std::string link_name) { return std::make_pair(frame_id, link_name); }
     std::map<goal_key, ArmTaskClient::GoalHandle> goal_map;
 
     ros::Rate rate;
