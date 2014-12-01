@@ -23,18 +23,17 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
         std::string link_name = goal.position_constraint.link_name;
         goal_key key = make_key(frame_id, link_name);
 
-        active_handle = goal_map[key];
+        ArmTaskClient::GoalHandle handle = goal_map[key];
 
-        if (!active_handle.isExpired()) {
-            ROS_INFO("cancelling old handle (%s,%s)", frame_id.c_str(), link_name.c_str());
-            active_handle.cancel(); // cancel if there was a previous goal
+        if (!handle.isExpired()) {
+            handle.cancel(); // cancel if there was a previous goal
         }
 
-        active_handle = wbc_client.sendGoal(goal,
+        handle = wbc_client.sendGoal(goal,
                             boost::bind(&Executer2::transition_cb, this, _1),
                             boost::bind(&Executer2::feedback_cb,   this, _1, _2));
 
-        goal_map[key] = active_handle; // save handle to keep goals active
+        goal_map[key] = handle; // save handle to keep goals active
 
         is_done_ = false;
         while (ros::ok() && !is_done_ && (ros::Time::now() - start_time) < ros::Duration(40.0)) {
@@ -45,14 +44,14 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
         if (is_done_) {
             // only on the last constraint, don't cancel
             if ((it+1) != constraints.end()) {
-                active_handle.cancel();
+                handle.cancel();
             }
 
             ROS_INFO("Constraint %d is valid", ++i);
             current_state_ = goal.goal_type;
         } else {
             ROS_WARN("Constraint %d is NOT valid, stopping", ++i);
-            active_handle.cancel();
+            handle.cancel();
             return false;
         }
 
@@ -64,11 +63,6 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
 
 void Executer2::feedback_cb(ArmTaskClient::GoalHandle goal_handle, const amigo_whole_body_controller::ArmTaskFeedbackConstPtr &feedback)
 {
-    if (goal_handle != active_handle) {
-        ROS_INFO("feedback for the wrong handle!");
-        return;
-    }
-
     const amigo_whole_body_controller::WholeBodyControllerStatus &code = feedback->status_code;
 
     switch (code.status) {

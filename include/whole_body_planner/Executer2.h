@@ -37,12 +37,6 @@ protected:
     void transition_cb(ArmTaskClient::GoalHandle goal_handle);
 
     /**
-     * This handle is currently being worked on by Execute
-     * It will be used by feedback_cb to determine if it's finished
-     */
-    ArmTaskClient::GoalHandle active_handle;
-
-    /**
      * Keep a map from /frame+/link_name to the corresponding goal handle.
      * This will be used to cancel previous goals with the same key
      */
