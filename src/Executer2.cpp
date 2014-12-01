@@ -23,17 +23,18 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
         std::string link_name = goal.position_constraint.link_name;
         goal_key key = make_key(frame_id, link_name);
 
-        ArmTaskClient::GoalHandle handle = goal_map[key];
+        ArmTaskClient::GoalHandle &handle = goal_map[key];
 
         if (!handle.isExpired()) {
+            ROS_INFO("cancelling old handle (%s,%s)", frame_id.c_str(), link_name.c_str());
             handle.cancel(); // cancel if there was a previous goal
         }
 
+        ROS_WARN("sending new goal: (%s,%s)", frame_id.c_str(), link_name.c_str());
         handle = wbc_client.sendGoal(goal,
                             boost::bind(&Executer2::transition_cb, this, _1),
                             boost::bind(&Executer2::feedback_cb,   this, _1, _2));
 
-        goal_map[key] = handle; // save handle to keep goals active
 
         is_done_ = false;
         while (ros::ok() && !is_done_ && (ros::Time::now() - start_time) < ros::Duration(40.0)) {
@@ -44,6 +45,7 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
         if (is_done_) {
             // only on the last constraint, don't cancel
             if ((it+1) != constraints.end()) {
+                ROS_INFO("cancelling intermediate goal (%s,%s)", frame_id.c_str(), link_name.c_str());
                 handle.cancel();
             }
 
@@ -64,6 +66,7 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
 void Executer2::feedback_cb(ArmTaskClient::GoalHandle goal_handle, const amigo_whole_body_controller::ArmTaskFeedbackConstPtr &feedback)
 {
     const amigo_whole_body_controller::WholeBodyControllerStatus &code = feedback->status_code;
+    ROS_INFO("status: %i", code.status);
 
     switch (code.status) {
     case wbc_codes::AT_GOAL_POSE:
