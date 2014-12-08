@@ -36,6 +36,12 @@ bool Executer2::Execute(const std::vector<amigo_whole_body_controller::ArmTaskGo
                             boost::bind(&Executer2::feedback_cb,   this, _1, _2));
         goal_map[key] = active_goal;
 
+        for (std::map<goal_key, ArmTaskClient::GoalHandle>::const_iterator hit = goal_map.begin(); hit != goal_map.end(); ++hit) {
+            const goal_key k = hit->first;
+            const ArmTaskClient::GoalHandle gh = hit->second;
+            ROS_INFO("\thandle (%s %s): %s", k.first.c_str(), k.second.c_str(), gh.isExpired() ? "expired" : "active");
+        }
+
         is_done_ = false;
         while (ros::ok() && !is_done_ && (ros::Time::now() - start_time) < ros::Duration(40.0)) {
             ros::spinOnce();

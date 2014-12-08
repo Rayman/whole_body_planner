@@ -4,7 +4,7 @@
 // WholeBodyPlanner
 #include "whole_body_planner/WholeBodyPlanner.h"
 
-const double loop_rate_ = 10;
+const double loop_rate_ = 150;
 
 int main(int argc, char **argv) {
 
