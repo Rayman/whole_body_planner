@@ -44,6 +44,8 @@ protected:
     goal_key make_key(std::string frame_id, std::string link_name) { return std::make_pair(frame_id, link_name); }
     std::map<goal_key, ArmTaskClient::GoalHandle> goal_map;
 
+    ArmTaskClient::GoalHandle active_goal;
+
     ros::Rate rate;
     bool is_done_;
 };
