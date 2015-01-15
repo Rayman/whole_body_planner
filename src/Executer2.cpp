@@ -123,7 +123,19 @@ void Executer2::transition_cb(ArmTaskClient::GoalHandle goal_handle)
         }
     }
 
-    // TODO: cleanup old handles
+    // cleanup old goal handles
+    if (goal_handle.getCommState() == actionlib::CommState::DONE) {
+        // we don't have the goal here, instead just search for the handle
+        for (std::map<goal_key, ArmTaskClient::GoalHandle>::iterator it = goal_map.begin(); it != goal_map.end(); ) { // no it++ here
+            ArmTaskClient::GoalHandle &cur = it->second;
+            if (cur == goal_handle) {
+                ROS_DEBUG("removed old goal from the goal_map");
+                goal_map.erase(it++);
+            } else {
+                ++it;
+            }
+        }
+    }
 }
 
 std::string Executer2::getCurrentState()
