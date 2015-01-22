@@ -17,6 +17,7 @@
 
 #include <ros/publisher.h>
 #include <ros/node_handle.h>
+#include <tf/transform_listener.h>
 
 class Simulator
 {
@@ -82,6 +83,8 @@ public:
       */
     void loadParameterFiles(wbc::CollisionAvoidance::collisionAvoidanceParameters &ca_param);
 
+    inline void setTransformListener(tf::TransformListener *listener) { listener_ = listener; }
+
 protected:
 
     /**
@@ -118,6 +121,8 @@ protected:
 
     /** \brief A shared private node handle */
     ros::NodeHandle n_;
+
+    tf::TransformListener *listener_;
 
 };
 
