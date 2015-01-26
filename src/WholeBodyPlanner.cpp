@@ -48,6 +48,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     simulator_.initialize(0.02);
     robot_state_interface_ = new RobotStateInterface();
 
+    simulator_.setTransformListener(&listener_);
 }
 
 WholeBodyPlanner::~WholeBodyPlanner()
