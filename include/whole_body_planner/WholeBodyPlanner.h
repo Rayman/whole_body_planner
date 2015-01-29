@@ -40,13 +40,7 @@ public:
     virtual ~WholeBodyPlanner();
 
     /** \brief Callback function for octomap */
-#if ROS_VERSION_MINIMUM(1,9,0)
-    // Groovy
     void octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg);
-#elif ROS_VERSION_MINIMUM(1,8,0)
-    // Fuerte
-    void octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg);
-#endif
 
 protected:
 

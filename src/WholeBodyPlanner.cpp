@@ -23,13 +23,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     action_server_old_right_->start();
 
     /// Subscriber
-    #if ROS_VERSION_MINIMUM(1,9,0)
-        // Groovy
-        octomap_sub  = nh_private.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
-    #elif ROS_VERSION_MINIMUM(1,8,0)
-        // Fuerte
-        octomap_sub  = nh_private.subscribe<octomap_msgs::OctomapBinary>("/octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
-    #endif
+    octomap_sub  = nh_private.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
 
     /// Publishers
     marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/whole_body_planner/constraints_out", 1);
@@ -491,9 +485,6 @@ void WholeBodyPlanner::PublishTrajectory(nav_msgs::Path &trajectory)
     trajectory_pub_.publish(trajectory);
 }
 
-
-#if ROS_VERSION_MINIMUM(1,9,0)
-// Groovy
 void WholeBodyPlanner::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& msg)
 {
         octomap::AbstractOcTree* tree = octomap_msgs::msgToMap(*msg);
@@ -514,54 +505,3 @@ void WholeBodyPlanner::octoMapCallback(const octomap_msgs::Octomap::ConstPtr& ms
             exit(1);
         }
 }
-#elif ROS_VERSION_MINIMUM(1,8,0)
-// Fuerte
-void WholeBodyPlanner::octoMapCallback(const octomap_msgs::OctomapBinary::ConstPtr& msg)
-{
-    octomap::AbstractOcTree* octree;
-    octree = octomap_msgs::binaryMsgDataToMap(msg->data);
-    std::stringstream datastream;
-    //ROS_INFO("Writing data to stream");
-    octree->writeData(datastream);
-
-    if (octree) {
-        octomap::OcTreeStamped* octreestamped;
-        octreestamped = new octomap::OcTreeStamped(0.05);
-        //ROS_INFO("Reading data from stream");
-        octreestamped->readData(datastream);
-        //ROS_INFO("Read data from stream");
-        //octreestamped = dynamic_cast<octomap::OcTreeStamped*>(octree);
-        if (!octreestamped){
-            ROS_ERROR("No Octomap created, SIMULATOR");
-        }
-        else{
-            simulator_.collision_avoidance_->setOctoMap(octreestamped);
-            planner_global_.task_space_roadmap_->setOctoMap(octreestamped);
-        }
-        //delete octree;
-    }
-    else{
-        ROS_ERROR("Octomap conversion error, SIMULATOR");
-        exit(1);
-    }
-
-
-
-    /*
-    octomap::OcTree* tree = octomap_msgs::binaryMsgDataToMap(msg->data);
-    if(tree){
-        octomap::OcTreeStamped* octree = dynamic_cast<octomap::OcTreeStamped*>(tree);
-        if(!octree){
-            ROS_ERROR("No Octomap created, SIMULATOR");
-        }
-        else{
-            collision_avoidance_->setOctoMap(octree);
-        }
-    }
-    else{
-        ROS_ERROR("Octomap conversion error");
-        exit(1);
-    }
-    */
-}
-#endif
