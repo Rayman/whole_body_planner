@@ -20,7 +20,7 @@
 #include "PlannerGlobal.h"
 
 /// Auxiliary stuff
-#include "Executer2.h"
+#include "Executer.h"
 #include "RobotStateInterface.h"
 #include "Simulator.h"
 
@@ -59,7 +59,7 @@ protected:
     /**
       * Object to send constraints to whole body controller
       */
-    Executer2 executer_;
+    Executer executer_;
 
     /// Receiving goals
     /**

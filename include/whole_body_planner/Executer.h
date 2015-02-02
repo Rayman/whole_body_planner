@@ -1,52 +1,53 @@
-/*!
- * \author Janno Lunenburg
- * \date June 2013
- * \version 0.1
- */
-
-#ifndef EXECUTER_H_
-#define EXECUTER_H_
+#ifndef EXECUTER_H
+#define EXECUTER_H
 
 #include <amigo_whole_body_controller/ArmTaskAction.h>
-#include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/action_client.h>
+
+namespace wbc_codes {
+    enum {
+        AT_GOAL_POSE = amigo_whole_body_controller::WholeBodyControllerStatus::AT_GOAL_POSE,
+        MOVING_TO_GOAL_POSE = amigo_whole_body_controller::WholeBodyControllerStatus::MOVING_TO_GOAL_POSE
+    };
+}
 
 class Executer
 {
-
 public:
-
-    /**
-      * Constructor
-      */
     Executer();
-
-    /**
-      * Deconstructor
-      */
-    virtual ~Executer();
 
     /**
       * Execute
       * @param constraints: vector of constraints that is sent to the whole body controller
       */
-    //bool Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoal*> constraints);
     bool Execute(const std::vector<amigo_whole_body_controller::ArmTaskGoal>& constraints);
 
     /** Returns current state
       * @return Current state */
     std::string getCurrentState();
 
-
 protected:
-
-private:
-
-    actionlib::SimpleActionClient<amigo_whole_body_controller::ArmTaskAction>* action_client_;
-
-    /** Keeps track of the current state of the robot */
     std::string current_state_;
 
+    typedef actionlib::ActionClient<amigo_whole_body_controller::ArmTaskAction> ArmTaskClient;
+    ArmTaskClient wbc_client;
+
+    void feedback_cb(ArmTaskClient::GoalHandle goal_handle, const amigo_whole_body_controller::ArmTaskFeedbackConstPtr &feedback);
+
+    void transition_cb(ArmTaskClient::GoalHandle goal_handle);
+
+    /**
+     * Keep a map from /frame+/link_name to the corresponding goal handle.
+     * This will be used to cancel previous goals with the same key
+     */
+    typedef std::pair<std::string, std::string> goal_key;
+    goal_key make_key(std::string frame_id, std::string link_name) { return std::make_pair(frame_id, link_name); }
+    std::map<goal_key, ArmTaskClient::GoalHandle> goal_map;
+
+    ArmTaskClient::GoalHandle active_goal;
+
+    ros::Rate rate;
+    bool is_done_;
 };
 
-#endif
-
+#endif // EXECUTER_H
