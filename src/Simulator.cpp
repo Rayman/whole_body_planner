@@ -1,14 +1,13 @@
 #include "whole_body_planner/Simulator.h"
 
 #include <amigo_whole_body_controller/motionobjectives/CartesianImpedance.h>
-#include <ros/this_node.h>
 
-Simulator::Simulator() : listener_(NULL)
+Simulator::Simulator() : n_("~"), listener_(NULL)
 {
 
 }
 
-Simulator::Simulator(const double Ts) : listener_(NULL)
+Simulator::Simulator(const double Ts) : n_("~"), listener_(NULL)
 {
     initialize(Ts);
 }
@@ -287,7 +286,7 @@ void Simulator::transformToRoot(std::vector<amigo_whole_body_controller::ArmTask
 void Simulator::loadParameterFiles(wbc::CollisionAvoidance::collisionAvoidanceParameters &ca_param)
 {
     ros::NodeHandle n("~");
-    std::string ns = ros::this_node::getName() + "/collision_avoidance";
+    std::string ns = "collision_avoidance";
 
     n.param<double> (ns+"/self_collision/F_max",                        ca_param.self_collision.f_max, 1.0);
     n.param<double> (ns+"/self_collision/d_threshold",                  ca_param.self_collision.d_threshold, 1.0);
@@ -299,7 +298,7 @@ void Simulator::loadParameterFiles(wbc::CollisionAvoidance::collisionAvoidancePa
     n.param<int>    (ns+"/environment_collision/order",                         ca_param.environment_collision.order, 1);
     n.param<double> (ns+"/environment_collision/visualization_force_factor",    ca_param.environment_collision.visualization_force_factor, 1.0);
 
-    n.getParam("/map_3d/resolution", ca_param.environment_collision.octomap_resolution);
+    n.getParam("map_3d/resolution", ca_param.environment_collision.octomap_resolution);
 
     assert(ca_param.self_collision.visualization_force_factor >= 1.0);
     assert(ca_param.environment_collision.visualization_force_factor >= 1.0);

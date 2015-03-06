@@ -6,28 +6,29 @@ WholeBodyPlanner::WholeBodyPlanner()
 {
 
     ROS_INFO("Initializing whole body planner");
+    ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
 
     /// Action servers
     // ToDo: move somewhere else (and keep this class clean)
-    action_server_ = new actionlib::SimpleActionServer<amigo_whole_body_controller::ArmTaskAction>(nh_private, "motion_constraint", false);
+    action_server_ = new actionlib::SimpleActionServer<amigo_whole_body_controller::ArmTaskAction>(nh, "motion_constraint", false);
     action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this));
     action_server_->start();
 
-    action_server_old_left_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh_private, "/grasp_precompute_left", false);
+    action_server_old_left_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh, "left_arm/grasp_precompute", false);
     action_server_old_left_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldLeft, this));
     action_server_old_left_->start();
 
-    action_server_old_right_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh_private, "/grasp_precompute_right", false);
+    action_server_old_right_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh, "right_arm/grasp_precompute", false);
     action_server_old_right_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldRight, this));
     action_server_old_right_->start();
 
     /// Subscriber
-    octomap_sub  = nh_private.subscribe<octomap_msgs::Octomap>("/octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
+    octomap_sub  = nh.subscribe<octomap_msgs::Octomap>("octomap_binary", 10, &WholeBodyPlanner::octoMapCallback, this);
 
     /// Publishers
-    marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("/whole_body_planner/constraints_out", 1);
-    trajectory_pub_   = nh_private.advertise<nav_msgs::Path>("/whole_body_planner/trajectory", 1);
+    marker_array_pub_ = nh_private.advertise<visualization_msgs::MarkerArray>("constraints_out", 1);
+    trajectory_pub_   = nh_private.advertise<nav_msgs::Path>("trajectory", 1);
 
     /// Load parameters
     int planner;
@@ -36,7 +37,7 @@ WholeBodyPlanner::WholeBodyPlanner()
     ROS_INFO("Planner type = %i",planner_);
 
 
-    nh_private.param<int> ("/whole_body_planner/joint_space_feasibility/iterations", max_iterations_, 1000);
+    nh_private.param<int>("joint_space_feasibility/iterations", max_iterations_, 1000);
 
     // ToDo: don't hardcode
     simulator_.initialize(0.02);

@@ -127,11 +127,8 @@ bool Graph::initializeGraph()
 {
     /// Get nodes from parameterserver
     ros::NodeHandle n("~");
-    std::string ns = ros::this_node::getName();
     XmlRpc::XmlRpcValue nodes;
-    ROS_WARN("Importing nodes, namespace hardcoded!");
-    ns = "/whole_body_planner";
-    n.getParam(ns+"/nodes", nodes);
+    n.getParam("nodes", nodes);
 
     //std::cout << "Nodes: " << nodes << std::endl;
     //std::cout << nodes[0] << std::endl;

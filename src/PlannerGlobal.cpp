@@ -2,7 +2,7 @@
 
 #include <octomap_ros/conversions.h>
 
-PlannerGlobal::PlannerGlobal()
+PlannerGlobal::PlannerGlobal() : nh_private("~")
 {
     /// Setup planning object
     task_space_roadmap_ = new TaskSpaceRoadmap();
@@ -12,8 +12,8 @@ PlannerGlobal::PlannerGlobal()
 
     /// Load intermediate (path) and default goal constraint
     XmlRpc::XmlRpcValue default_constraint, intermediate_constraint;
-    nh_private.getParam("/whole_body_planner/default_goal_constraint", default_constraint);
-    nh_private.getParam("/whole_body_planner/intermediate_path_constraint", intermediate_constraint);
+    nh_private.getParam("default_goal_constraint", default_constraint);
+    nh_private.getParam("intermediate_path_constraint", intermediate_constraint);
 
     loadConstraint(default_constraint, default_constraint_);
     loadConstraint(intermediate_constraint, intermediate_constraint_);

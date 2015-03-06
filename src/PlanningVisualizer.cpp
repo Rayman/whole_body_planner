@@ -1,6 +1,6 @@
 #include <whole_body_planner/PlanningVisualizer.h>
 
-PlanningVisualizer::PlanningVisualizer()
+PlanningVisualizer::PlanningVisualizer() : n_("~")
 {
     marker_pub_ = n_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
     markera_pub_ = n_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 1);

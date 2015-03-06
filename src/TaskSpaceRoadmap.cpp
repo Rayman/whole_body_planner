@@ -44,17 +44,17 @@ bool TaskSpaceRoadmap::isStateValid(const ob::State *state)
     return true;
 }
 
-TaskSpaceRoadmap::TaskSpaceRoadmap() : octomap_(NULL)
+TaskSpaceRoadmap::TaskSpaceRoadmap() : n_("~"), octomap_(NULL)
 {
     //ROS_INFO_STREAM( "OMPL version: " << OMPL_VERSION );
     ROS_INFO("Initializing plannerglobal");
 
     // Load parameters
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/validity_checking_resolution", validity_checking_resolution, 0.005);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/solution_time", solution_time, 1.0);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/simplification_time", simplification_time, 0.001);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/octomap_resolution", octomap_resolution, 0.05);
-    n_.param<int> ("/whole_body_planner/task_space_roadmap/clearance_attempts", clearance_attempts, 10);
+    n_.param<double>("task_space_roadmap/validity_checking_resolution", validity_checking_resolution, 0.005);
+    n_.param<double>("task_space_roadmap/solution_time",                solution_time,                1.0);
+    n_.param<double>("task_space_roadmap/simplification_time",          simplification_time,          0.001);
+    n_.param<double>("task_space_roadmap/octomap_resolution",           octomap_resolution,           0.05);
+    n_.param<int>   ("task_space_roadmap/clearance_attempts",           clearance_attempts,          10);
 
     // Octomap
     octomap_ = new octomap::OcTreeStamped(octomap_resolution);
@@ -263,12 +263,12 @@ void TaskSpaceRoadmap::setBounds(ob::StateSpacePtr space, const KDL::Frame& star
 
     // Load parameters for planning w.r.t. root frame
     double x, x_min, x_max, y, y_min, y_max, z, z_min, z_max;
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/x_max", x_max, 0.8);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/y_max", y_max, 0.8);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/z_max", z_max, 1.25);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/x_min", x_min, 0.0);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/y_min", y_min, 0.0);
-    n_.param<double> ("/whole_body_planner/task_space_roadmap/planning_domain/z_min", z_min, 0.05);
+    n_.param<double> ("task_space_roadmap/planning_domain/x_max", x_max, 0.8);
+    n_.param<double> ("task_space_roadmap/planning_domain/y_max", y_max, 0.8);
+    n_.param<double> ("task_space_roadmap/planning_domain/z_max", z_max, 1.25);
+    n_.param<double> ("task_space_roadmap/planning_domain/x_min", x_min, 0.0);
+    n_.param<double> ("task_space_roadmap/planning_domain/y_min", y_min, 0.0);
+    n_.param<double> ("task_space_roadmap/planning_domain/z_min", z_min, 0.05);
 
     // Check which side we are planning for
     if (goal_constraint_.position_constraint.link_name.find("right") != std::string::npos){

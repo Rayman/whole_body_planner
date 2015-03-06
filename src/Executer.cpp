@@ -1,7 +1,7 @@
 #include "whole_body_planner/Executer.h"
 
 Executer::Executer()
-    : current_state_("reset"), wbc_client("/add_motion_objective"), rate(150), is_done_(false)
+    : current_state_("reset"), wbc_client("add_motion_objective"), rate(150), is_done_(false)
 {
 }
 
