@@ -452,6 +452,8 @@ bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGo
 
     // ToDo: first joint pos only (test: target_point_offset needs to be integrated in whole-body-controller)
 
+    goal.allowed_touch_objects = grasp_goal.allowed_touch_objects;
+
     return true;
 }
 
