@@ -117,7 +117,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
         /// Check if plan is feasible (checkFeasibility)
         int error_index = 0;
 
-        plan_feasible = true; // simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
+        plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
         ROS_INFO("Checked feasibility, error_index = %i", error_index);
 
         /// Failure handling
@@ -141,7 +141,7 @@ bool WholeBodyPlanner::planSimExecute(const amigo_whole_body_controller::ArmTask
                     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
                     simulator_.transformToRoot(constraints_, goal);
 
-                    plan_feasible = true; // simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
+                    plan_feasible = simulator_.checkFeasibility(constraints_, max_iterations_, error_index);
 
                 }
             }
