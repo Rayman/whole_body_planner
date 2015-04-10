@@ -427,9 +427,9 @@ bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGo
 
     /// Stiffness
     ROS_INFO("Stiffness");
-    goal.stiffness.force.x = 70.0;
-    goal.stiffness.force.y = 60.0;
-    goal.stiffness.force.z = 50.0;
+    goal.stiffness.force.x = 120.0;
+    goal.stiffness.force.y = 120.0;
+    goal.stiffness.force.z = 120.0;
     goal.stiffness.torque.x = 3.0;
     goal.stiffness.torque.y = 3.0;
     goal.stiffness.torque.z = 3.0;
