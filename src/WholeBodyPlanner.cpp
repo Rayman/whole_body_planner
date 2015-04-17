@@ -329,39 +329,64 @@ bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGo
         return false;
     }
 
+    /// Stiffness
+    /// if a direction is NaN, set the stiffness to 0
+
+    ROS_INFO("Stiffness");
+    goal.stiffness.force.x = 120.0;
+    goal.stiffness.force.y = 120.0;
+    goal.stiffness.force.z = 120.0;
+    goal.stiffness.torque.x = 3.0;
+    goal.stiffness.torque.y = 3.0;
+    goal.stiffness.torque.z = 3.0;
+
     if (absolute_requested)
     {
+        tue_manipulation::cart_pos pos = grasp_goal.goal;
+
+        if (std::isnan(pos.x)) { pos.x = 0; goal.stiffness.force.x = 0; }
+        if (std::isnan(pos.y)) { pos.y = 0; goal.stiffness.force.y = 0; }
+        if (std::isnan(pos.z)) { pos.z = 0; goal.stiffness.force.z = 0; }
+        if (std::isnan(pos.roll))  { pos.roll  = 0; goal.stiffness.torque.x = 0; }
+        if (std::isnan(pos.pitch)) { pos.pitch = 0; goal.stiffness.torque.y = 0; }
+        if (std::isnan(pos.yaw))   { pos.yaw   = 0; goal.stiffness.torque.z = 0; }
+
         /// Position constraint
         ROS_INFO("Position constraint: position");
-        ROS_INFO("Position constraint: x: %f, y: %f, z: %f",grasp_goal.goal.x, grasp_goal.goal.y, grasp_goal.goal.z);
-        goal.position_constraint.header = grasp_goal.goal.header;
-        goal.position_constraint.position.x = grasp_goal.goal.x;
-        goal.position_constraint.position.y = grasp_goal.goal.y;
-        goal.position_constraint.position.z = grasp_goal.goal.z;
+        ROS_INFO("Position constraint: x: %f, y: %f, z: %f",pos.x, pos.y, pos.z);
+        goal.position_constraint.header = pos.header;
+        goal.position_constraint.position.x = pos.x;
+        goal.position_constraint.position.y = pos.y;
+        goal.position_constraint.position.z = pos.z;
 
         /// Orientation constraint (static)
-        ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
-        goal.orientation_constraint.header = grasp_goal.goal.header;
-        goal.orientation_constraint.orientation = tf::createQuaternionMsgFromRollPitchYaw(grasp_goal.goal.roll, grasp_goal.goal.pitch, grasp_goal.goal.yaw);
+
+        ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",pos.roll, pos.pitch, pos.yaw);
+        goal.orientation_constraint.header = pos.header;
+        goal.orientation_constraint.orientation = tf::createQuaternionMsgFromRollPitchYaw(pos.roll, pos.pitch, pos.yaw);
     }
     else if (delta_requested)
     {
+        // TODO: implement setting forces to 0 when a direction is NaN
+
+        tue_manipulation::cart_pos delta = grasp_goal.goal;
+
         /// Create temporary objects
         geometry_msgs::PointStamped point_in, point_out;
         geometry_msgs::QuaternionStamped quat_in, quat_out;
 
         /// Position constraint
         ROS_INFO("Position constraint: delta position");
-        ROS_INFO("Position constraint: x: %f, y: %f, z: %f",grasp_goal.delta.x, grasp_goal.delta.y, grasp_goal.delta.z);
-        point_in.header = grasp_goal.delta.header;
-        point_in.point.x = grasp_goal.delta.x;
-        point_in.point.y = grasp_goal.delta.y;
-        point_in.point.z = grasp_goal.delta.z;
+        ROS_INFO("Position constraint: x: %f, y: %f, z: %f",delta.x, delta.y, delta.z);
+        point_in.header = delta.header;
+        point_in.point.x = delta.x;
+        point_in.point.y = delta.y;
+        point_in.point.z = delta.z;
 
         /// Orientation constraint (static)
-        ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",grasp_goal.delta.roll, grasp_goal.delta.pitch, grasp_goal.delta.yaw);
-        quat_in.header = grasp_goal.delta.header;
-        quat_in.quaternion = tf::createQuaternionMsgFromRollPitchYaw(grasp_goal.delta.roll, grasp_goal.delta.pitch, grasp_goal.delta.yaw);
+        ROS_INFO("Orientation constraint: roll: %f, pitch: %f, yaw: %f",delta.roll, delta.pitch, delta.yaw);
+        quat_in.header = delta.header;
+        quat_in.quaternion = tf::createQuaternionMsgFromRollPitchYaw(delta.roll, delta.pitch, delta.yaw);
         ROS_INFO("Frame IDs are %s and %s %f %f %f %f", point_out.header.frame_id.c_str(), quat_in.header.frame_id.c_str(), quat_in.quaternion.x,quat_in.quaternion.y,quat_in.quaternion.z,quat_in.quaternion.w);
 
         /// Transform to base_link
@@ -424,15 +449,6 @@ bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGo
     goal.orientation_constraint.absolute_roll_tolerance = 0.3;
     goal.orientation_constraint.absolute_pitch_tolerance = 0.3;
     goal.orientation_constraint.absolute_yaw_tolerance = 0.3;
-
-    /// Stiffness
-    ROS_INFO("Stiffness");
-    goal.stiffness.force.x = 120.0;
-    goal.stiffness.force.y = 120.0;
-    goal.stiffness.force.z = 120.0;
-    goal.stiffness.torque.x = 3.0;
-    goal.stiffness.torque.y = 3.0;
-    goal.stiffness.torque.z = 3.0;
 
     /// Incase of pre-grasp = true: add pre-grasp offset to target_point_offset
     if (grasp_goal.PERFORM_PRE_GRASP)
