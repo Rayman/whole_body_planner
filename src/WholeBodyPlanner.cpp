@@ -336,9 +336,9 @@ bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGo
     goal.stiffness.force.x = 120.0;
     goal.stiffness.force.y = 120.0;
     goal.stiffness.force.z = 120.0;
-    goal.stiffness.torque.x = 3.0;
-    goal.stiffness.torque.y = 3.0;
-    goal.stiffness.torque.z = 3.0;
+    goal.stiffness.torque.x = 10.0;
+    goal.stiffness.torque.y = 10.0;
+    goal.stiffness.torque.z = 10.0;
 
     if (absolute_requested)
     {
