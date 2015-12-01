@@ -9,7 +9,7 @@
 
 #include <amigo_whole_body_controller/ArmTaskAction.h>
 #include <actionlib/server/simple_action_server.h>
-#include <tue_manipulation/GraspPrecomputeAction.h>
+#include <tue_manipulation_msgs/GraspPrecomputeAction.h>
 
 /// Messages
 #include <nav_msgs/Path.h>
@@ -131,7 +131,7 @@ protected:
     /**
       * Action server for old interface (left)
       */
-    actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>* action_server_old_left_;
+    actionlib::SimpleActionServer<tue_manipulation_msgs::GraspPrecomputeAction>* action_server_old_left_;
 
     /**
       * Callback function for old interface (left)
@@ -141,7 +141,7 @@ protected:
     /**
       * Action server for old interface (right)
       */
-    actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>* action_server_old_right_;
+    actionlib::SimpleActionServer<tue_manipulation_msgs::GraspPrecomputeAction>* action_server_old_right_;
 
     /**
       * Callback function for old interface (left)
@@ -151,7 +151,7 @@ protected:
     /**
       * Converts grasp-precompute goal to motion constraint
       */
-    bool convertGoalType(const tue_manipulation::GraspPrecomputeGoal &grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal);
+    bool convertGoalType(const tue_manipulation_msgs::GraspPrecomputeGoal &grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal);
 
     /**
       * tf listener (required for delta goals)

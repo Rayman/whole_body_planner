@@ -8,8 +8,8 @@ from arm_navigation_msgs.msg import *
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker
-#from tue_manipulation.msg._GraspPrecomputeGoal import GraspPrecomputeGoal
-#from tue_manipulation.msg._GraspPrecomputeAction import GraspPrecomputeAction
+#from tue_manipulation_msgs.msg._GraspPrecomputeGoal import GraspPrecomputeGoal
+#from tue_manipulation_msgs.msg._GraspPrecomputeAction import GraspPrecomputeAction
 
 def euler_z_to_quaternion(roll, pitch, yaw):
     

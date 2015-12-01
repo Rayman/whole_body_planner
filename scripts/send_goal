@@ -19,7 +19,7 @@ import rospy
 import actionlib
 
 from std_msgs.msg import Header
-from tue_manipulation.msg import GraspPrecomputeAction, GraspPrecomputeGoal, cart_pos
+from tue_manipulation_msgs.msg import GraspPrecomputeAction, GraspPrecomputeGoal, cart_pos
 
 
 class GraspPrecompute():
