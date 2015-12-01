@@ -15,11 +15,11 @@ WholeBodyPlanner::WholeBodyPlanner()
     action_server_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCB, this));
     action_server_->start();
 
-    action_server_old_left_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh, "left_arm/grasp_precompute", false);
+    action_server_old_left_ = new actionlib::SimpleActionServer<tue_manipulation_msgs::GraspPrecomputeAction>(nh, "left_arm/grasp_precompute", false);
     action_server_old_left_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldLeft, this));
     action_server_old_left_->start();
 
-    action_server_old_right_ = new actionlib::SimpleActionServer<tue_manipulation::GraspPrecomputeAction>(nh, "right_arm/grasp_precompute", false);
+    action_server_old_right_ = new actionlib::SimpleActionServer<tue_manipulation_msgs::GraspPrecomputeAction>(nh, "right_arm/grasp_precompute", false);
     action_server_old_right_->registerGoalCallback(boost::bind(&WholeBodyPlanner::goalCBOldRight, this));
     action_server_old_right_->start();
 
@@ -223,7 +223,7 @@ void WholeBodyPlanner::goalCBOldLeft()
     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
 
     /// Messages
-    const tue_manipulation::GraspPrecomputeGoal& grasp_goal = *action_server_old_left_->acceptNewGoal();
+    const tue_manipulation_msgs::GraspPrecomputeGoal& grasp_goal = *action_server_old_left_->acceptNewGoal();
     amigo_whole_body_controller::ArmTaskGoal goal;
     
 	/// Set link names
@@ -272,7 +272,7 @@ void WholeBodyPlanner::goalCBOldRight()
     simulator_.setInitialJointConfiguration(robot_state_interface_->getJointPositions(), robot_state_interface_->getAmclPose());
 	
 	/// Messages
-    const tue_manipulation::GraspPrecomputeGoal& grasp_goal = *action_server_old_right_->acceptNewGoal();
+    const tue_manipulation_msgs::GraspPrecomputeGoal& grasp_goal = *action_server_old_right_->acceptNewGoal();
     amigo_whole_body_controller::ArmTaskGoal goal;
 
 	/// Set link names
@@ -313,7 +313,7 @@ void WholeBodyPlanner::goalCBOldRight()
     }
 }
 
-bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGoal& grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal)
+bool WholeBodyPlanner::convertGoalType(const tue_manipulation_msgs::GraspPrecomputeGoal& grasp_goal, amigo_whole_body_controller::ArmTaskGoal &goal)
 {
 
     /// Check for absolute or delta (and ambiguous goals)
@@ -342,7 +342,7 @@ bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGo
 
     if (absolute_requested)
     {
-        tue_manipulation::cart_pos pos = grasp_goal.goal;
+        tue_manipulation_msgs::cart_pos pos = grasp_goal.goal;
 
         if (std::isnan(pos.x)) { pos.x = 0; goal.stiffness.force.x = 0; }
         if (std::isnan(pos.y)) { pos.y = 0; goal.stiffness.force.y = 0; }
@@ -369,7 +369,7 @@ bool WholeBodyPlanner::convertGoalType(const tue_manipulation::GraspPrecomputeGo
     {
         // TODO: implement setting forces to 0 when a direction is NaN
 
-        tue_manipulation::cart_pos delta = grasp_goal.goal;
+        tue_manipulation_msgs::cart_pos delta = grasp_goal.goal;
 
         /// Create temporary objects
         geometry_msgs::PointStamped point_in, point_out;

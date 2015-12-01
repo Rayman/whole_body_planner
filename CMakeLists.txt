@@ -7,7 +7,7 @@ project(whole_body_planner)
 find_package(catkin REQUIRED COMPONENTS
   actionlib
   amigo_whole_body_controller
-  tue_manipulation
+  tue_manipulation_msgs
   arm_navigation_msgs
   geometry_msgs
   nav_msgs
